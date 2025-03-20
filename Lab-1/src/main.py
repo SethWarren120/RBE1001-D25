@@ -15,10 +15,10 @@ brain=Brain()
 
 brain.screen.print("Hello V5")
 
-left_motor = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
+left_motor = Motor(Ports.PORT10, GearSetting.RATIO_18_1, False)
 left_motor.set_velocity(30, RPM)
 left_motor.reset_position()
-right_motor = Motor(Ports.PORT2, GearSetting.RATIO_18_1, False)
+right_motor = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
 right_motor.set_velocity(30, RPM)
 right_motor.reset_position()
 
@@ -58,7 +58,6 @@ def turnDegrees(robotTurnInDegrees, gearRatio=5):
     odom[2] += robotTurnInDegrees
     brain.screen.clear_screen()
     brain.screen.print_at("Heading: " + str(odom[2]), x=0, y=40)
-
 
 def drivePolygon(numSide, sideLength):
     for i in range(numSide):
