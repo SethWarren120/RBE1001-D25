@@ -29,13 +29,34 @@ right_motor = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
 right_motor.set_velocity(30, RPM)
 right_motor.reset_position()
 
+def updateOdometry():
+    while True:
+        left_motor.reset_position()
+        right_motor.reset_position()
+
+        left_position = left_motor.position(DEGREES)
+        right_position = right_motor.position(DEGREES)
+
+        left_distance = (left_position / 360.0) * wheelCircumference / gear_ratio
+        right_distance = (right_position / 360.0) * wheelCircumference / gear_ratio
+
+        avg_distance = (left_distance + right_distance) / 2.0
+        delta_theta = (right_distance - left_distance) / track_width
+        
+        odom[0] += avg_distance * math.cos(math.radians(odom[2]))
+        odom[1] += avg_distance * math.sin(math.radians(odom[2]))
+        odom[2] += math.degrees(delta_theta)
+
+        brain.screen.clear_screen()
+        brain.screen.print_at("X: " + str(odom[0]), x=0, y=0)
+        brain.screen.print_at("Y: " + str(odom[1]), x=0, y=20)
+        brain.screen.print_at("Heading: " + str(odom[2]), x=0, y=40)
+
+
 #x y theta
 #when theta is 0: +x is forward, +y is left
-odom = [0,0,0]
-brain.screen.clear_screen()
-brain.screen.print_at("X: " + str(odom[0]), x=0, y=0)
-brain.screen.print_at("Y: " + str(odom[1]), x=0, y=20)
-brain.screen.print_at("Heading: " + str(odom[2]), x=0, y=40)
+odom = [0.0,0.0,0.0]
+odomThread = Thread(updateOdometry)
 
 def moveLen(len):
     deg = 360 * ((len / wheelCircumference) * gear_ratio)
@@ -43,12 +64,6 @@ def moveLen(len):
     left_motor.spin_for(FORWARD, deg, DEGREES, 100, RPM, False)
     right_motor.spin_for(FORWARD, deg, DEGREES, 100, RPM, True)
 
-    odom[0] += len * math.cos(math.radians(odom[2]))
-    odom[1] += len * math.sin(math.radians(odom[2]))
-
-    brain.screen.clear_screen()
-    brain.screen.print_at("X: " + str(odom[0]), x=0, y=0)
-    brain.screen.print_at("Y: " + str(odom[1]), x=0, y=20)
     
 def turnDeg(deg, pivotOffset = 0.0):
     lenLeft = -(2 * 3.14 * ((track_width / 2) + pivotOffset)) * (-deg / 360)
@@ -63,19 +78,6 @@ def turnDeg(deg, pivotOffset = 0.0):
     else:
         left_motor.spin_for(FORWARD, degLeft, DEGREES, 100 * (degLeft / degRight), RPM, False)
         right_motor.spin_for(FORWARD, degRight, DEGREES, 100, RPM, True)
-
-    arc_length = 2 * math.pi * pivotOffset * (deg / 360)
-    delta_x = arc_length * math.cos(math.radians(odom[2]))
-    delta_y = arc_length * math.sin(math.radians(odom[2]))
-    
-    odom[2] += deg
-    odom[0] += delta_x
-    odom[1] += delta_y
-
-    brain.screen.clear_screen()
-    brain.screen.print_at("X: " + str(odom[0]), x=0, y=0)
-    brain.screen.print_at("Y: " + str(odom[1]), x=0, y=20)
-    brain.screen.print_at("Heading: " + str(odom[2]), x=0, y=40)
 
 def driveMaze():
     moveLen(15)
