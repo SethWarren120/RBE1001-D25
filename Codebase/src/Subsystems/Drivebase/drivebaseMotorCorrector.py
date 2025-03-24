@@ -27,9 +27,6 @@ class DrivebaseMotorCorrector:
         self.units = rotationUnits
         self.loopTime = correctionLoopTime
 
-        for motor in motorList:
-            motor.reset_position()
-
     def setSelfCorrectionMode(self, useSelfCorrectionMode):
         self.selfCorrectionMode = useSelfCorrectionMode
         if (useSelfCorrectionMode and ((not hasattr(self, 'selfCorrectionTask')) or
