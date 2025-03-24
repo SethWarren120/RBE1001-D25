@@ -20,7 +20,6 @@ wheelCircumference = 3.14 * wheelDiameter
 degreesPerInch = 360.0 / wheelCircumference
 
 brain=Brain()
-brain.screen.print("Hello V5")
 
 left_motor = Motor(Ports.PORT10, GearSetting.RATIO_18_1, False)
 left_motor.set_velocity(30, RPM)
@@ -34,8 +33,12 @@ def updateOdometry():
         left_motor.reset_position()
         right_motor.reset_position()
 
+        wait(1500, MSEC)
+
         left_position = left_motor.position(DEGREES)
         right_position = right_motor.position(DEGREES)
+        brain.screen.print_at("left: " + str(left_position), x=0, y=80)
+        brain.screen.print_at("right: " + str(right_position), x=0, y=100)
 
         left_distance = (left_position / 360.0) * wheelCircumference / gear_ratio
         right_distance = (right_position / 360.0) * wheelCircumference / gear_ratio
@@ -43,15 +46,21 @@ def updateOdometry():
         avg_distance = (left_distance + right_distance) / 2.0
         delta_theta = (right_distance - left_distance) / track_width
         
+        brain.screen.print_at("avg_distance: " + str(avg_distance), x=0, y=120)
+        brain.screen.print_at("delta_theta: " + str(delta_theta), x=0, y=140)
+
         odom[0] += avg_distance * math.cos(math.radians(odom[2]))
         odom[1] += avg_distance * math.sin(math.radians(odom[2]))
         odom[2] += math.degrees(delta_theta)
+        if (odom[2] > 360):
+            odom[2] -= 360
+        elif (odom[2] < 0):
+            odom[2] += 360
 
-        brain.screen.clear_screen()
-        brain.screen.print_at("X: " + str(odom[0]), x=0, y=0)
-        brain.screen.print_at("Y: " + str(odom[1]), x=0, y=20)
-        brain.screen.print_at("Heading: " + str(odom[2]), x=0, y=40)
-
+        brain.screen.print_at("X: " + str(odom[0]), x=0, y=20)
+        brain.screen.print_at("Y: " + str(odom[1]), x=0, y=40)
+        brain.screen.print_at("Heading: " + str(odom[2]), x=0, y=60)
+        brain.screen.render()
 
 #x y theta
 #when theta is 0: +x is forward, +y is left
@@ -107,3 +116,5 @@ def driveToPose(x,y,theta):
     # turnDegrees(angle - currentPose[2], 5)
     # driveDistance(distance, 5)
     # turnDegrees(theta - angle, 5)
+
+drivePolygon(4,1,0)
