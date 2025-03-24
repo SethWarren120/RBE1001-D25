@@ -28,18 +28,22 @@ wheelTrack = 11.0
 degreesPerInch = 360.0 / wheelCircumference
 
 def moveLen(len):
+    #converts the given length to degrees
     deg = 360 * ((len / wheelCircumference) * gearRatio)
 
     left_motor.spin_for(FORWARD, deg, DEGREES, 100, RPM, False)
     right_motor.spin_for(FORWARD, deg, DEGREES, 100, RPM, True)
 
 def turnDeg(deg, pivotOffset = 0.0):
+    #calculates the length the left motor needs to travel and the right motor needs to travel based on the pivot offset
     lenLeft = -(2 * 3.14 * ((wheelTrack / 2) + pivotOffset)) * (-deg / 360)
     lenRight = (2 * 3.14 * ((wheelTrack / 2) - pivotOffset) * (-deg / 360))
 
+    #converts the length to a degree
     degLeft = 360 * ((lenLeft / wheelCircumference) * gearRatio)
     degRight = 360 * ((lenRight / wheelCircumference) * gearRatio)
 
+    #gives the motors the correct amount of power depending on which way the robot is turning
     if (degLeft > degRight):
         left_motor.spin_for(FORWARD, degLeft, DEGREES, 100, RPM, False)
         right_motor.spin_for(FORWARD, degRight, DEGREES, 100 * (degRight / degLeft), RPM, True)
@@ -59,11 +63,13 @@ def driveMaze():
 
 
 def drivePolygon(numSide, sideLength, turnRadius = 7):
+    #Iterates through the number of sides and moves the robot
     for i in range(numSide):
         moveLen(sideLength)
         turnDeg(360/numSide, turnRadius)
 
 drivePolygon(4, 8)
+# driveMaze()
 
 
 
