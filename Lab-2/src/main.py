@@ -31,55 +31,12 @@ right_motor.reset_position()
 
 rangeFinderFront = Sonar(Ports.PORT4)
 rangeFinderRightSide = Sonar(Ports.PORT3)
-        
-def updateOdometry():
-    while True:
-        left_motor.reset_position()
-        right_motor.reset_position()
-
-        wait(1500, MSEC)
-
-        left_position = left_motor.position(DEGREES)
-        right_position = right_motor.position(DEGREES)
-        brain.screen.print_at("left: " + str(left_position), x=0, y=80)
-        brain.screen.print_at("right: " + str(right_position), x=0, y=100)
-
-        left_distance = (left_position / 360.0) * wheelCircumference / gear_ratio
-        right_distance = (right_position / 360.0) * wheelCircumference / gear_ratio
-
-        avg_distance = (left_distance + right_distance) / 2.0
-        delta_theta = (right_distance - left_distance) / track_width
-        
-        brain.screen.print_at("avg_distance: " + str(avg_distance), x=0, y=120)
-        brain.screen.print_at("delta_theta: " + str(delta_theta), x=0, y=140)
-
-        odom[0] += avg_distance * math.cos(math.radians(odom[2]))
-        odom[1] += avg_distance * math.sin(math.radians(odom[2]))
-        odom[2] += math.degrees(delta_theta)
-        if (odom[2] > 360):
-            odom[2] -= 360
-        elif (odom[2] < 0):
-            odom[2] += 360
-
-        brain.screen.print_at("X: " + str(odom[0]) + "       pX: " + str(pOdom[0]), x=0, y=0)
-        brain.screen.print_at("Y: " + str(odom[1]) + "       pY: " + str(pOdom[1]), x=0, y=20)
-        brain.screen.print_at("Heading: " + str(odom[2]) + "       pHeading: " + str(pOdom[2]), x=0, y=40)
-        brain.screen.render()
-
-#x y theta
-#when theta is 0: +x is forward, +y is left
-odom = [0.0,0.0,0.0]
-pOdom = [0.0,0.0,0.0]
-odomThread = Thread(updateOdometry)
 
 def moveLen(len):
     deg = 360 * ((len / wheelCircumference) * gear_ratio)
 
     left_motor.spin_for(FORWARD, deg, DEGREES, 100, RPM, False)
     right_motor.spin_for(FORWARD, deg, DEGREES, 100, RPM, True)
-
-    pOdom[0] += len * math.cos(math.radians(odom[2]))
-    pOdom[1] += len * math.sin(math.radians(odom[2]))
 
 def drive(speed, direction):
     motor_direction = FORWARD if speed >= 0 else REVERSE
@@ -140,26 +97,9 @@ def turnDeg(deg, pivotOffset = 0.0):
         left_motor.spin_for(FORWARD, degLeft, DEGREES, 100 * (degLeft / degRight), RPM, False)
         right_motor.spin_for(FORWARD, degRight, DEGREES, 100, RPM, True)
 
-    theta_rad = math.radians(odom[2])
-    deg_rad = math.radians(deg)
-    radius = abs(pivotOffset)
-    if deg != 0:  # Avoid calculations if no rotation
-        # Calculate the change in position (works for all pivotOffset values)
-        dx = radius * (math.cos(theta_rad + deg_rad) - math.cos(theta_rad))
-        dy = radius * (math.sin(theta_rad + deg_rad) - math.sin(theta_rad))
-        
-        # Update predicted position
-        pOdom[0] += dx
-        pOdom[1] += dy
-    
-    pOdom[2] += deg
-    if pOdom[2] > 360:
-        pOdom[2] -= 360
-    elif pOdom[2] < 0:
-        pOdom[2] += 360
-
 def driveToPose(x,y,theta):
-    currentPose = odom
+    pass
+    # currentPose = odom
     # deltaX = x - currentPose[0]
     # deltaY = y - currentPose[1]
     # deltaTheta = theta - currentPose[2]
