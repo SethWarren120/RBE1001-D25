@@ -57,14 +57,15 @@ def updateOdometry():
         elif (odom[2] < 0):
             odom[2] += 360
 
-        brain.screen.print_at("X: " + str(odom[0]), x=0, y=20)
-        brain.screen.print_at("Y: " + str(odom[1]), x=0, y=40)
-        brain.screen.print_at("Heading: " + str(odom[2]), x=0, y=60)
+        brain.screen.print_at("X: " + str(odom[0]) + "       pX: " + str(pOdom[0]), x=0, y=0)
+        brain.screen.print_at("Y: " + str(odom[1]) + "       pY: " + str(pOdom[1]), x=0, y=20)
+        brain.screen.print_at("Heading: " + str(odom[2]) + "       pHeading: " + str(pOdom[2]), x=0, y=40)
         brain.screen.render()
 
 #x y theta
 #when theta is 0: +x is forward, +y is left
 odom = [0.0,0.0,0.0]
+pOdom = [0.0,0.0,0.0]
 odomThread = Thread(updateOdometry)
 
 def moveLen(len):
@@ -72,6 +73,9 @@ def moveLen(len):
 
     left_motor.spin_for(FORWARD, deg, DEGREES, 100, RPM, False)
     right_motor.spin_for(FORWARD, deg, DEGREES, 100, RPM, True)
+
+    pOdom[0] += len * math.cos(math.radians(odom[2]))
+    pOdom[1] += len * math.sin(math.radians(odom[2]))
 
     
 def turnDeg(deg, pivotOffset = 0.0):
@@ -88,21 +92,23 @@ def turnDeg(deg, pivotOffset = 0.0):
         left_motor.spin_for(FORWARD, degLeft, DEGREES, 100 * (degLeft / degRight), RPM, False)
         right_motor.spin_for(FORWARD, degRight, DEGREES, 100, RPM, True)
 
-def driveMaze():
-    moveLen(15)
-    turnDeg(-90, -10)
-    moveLen(7)
-    turnDeg(69, 10)
-    turnDeg(21, 20)
-    moveLen(2.5)
-    turnDeg(90, 3)
-    moveLen(5)
-
-
-def drivePolygon(numSide, sideLength, turnRadius = 7):
-    for i in range(numSide):
-        moveLen(sideLength)
-        turnDeg(360/numSide, turnRadius)
+    theta_rad = math.radians(odom[2])
+    deg_rad = math.radians(deg)
+    radius = abs(pivotOffset)
+    if deg != 0:  # Avoid calculations if no rotation
+        # Calculate the change in position (works for all pivotOffset values)
+        dx = radius * (math.cos(theta_rad + deg_rad) - math.cos(theta_rad))
+        dy = radius * (math.sin(theta_rad + deg_rad) - math.sin(theta_rad))
+        
+        # Update predicted position
+        pOdom[0] += dx
+        pOdom[1] += dy
+    
+    pOdom[2] += deg
+    if pOdom[2] > 360:
+        pOdom[2] -= 360
+    elif pOdom[2] < 0:
+        pOdom[2] += 360
 
 def driveToPose(x,y,theta):
     currentPose = odom
@@ -116,5 +122,3 @@ def driveToPose(x,y,theta):
     # turnDegrees(angle - currentPose[2], 5)
     # driveDistance(distance, 5)
     # turnDegrees(theta - angle, 5)
-
-drivePolygon(4,1,0)
