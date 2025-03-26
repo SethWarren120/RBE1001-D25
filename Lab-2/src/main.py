@@ -38,10 +38,12 @@ rangeFinderRight = Sonar(brain.three_wire_port.g)
 lineSensorLeft = Line(brain.three_wire_port.c)
 lineSensorRight = Line(brain.three_wire_port.d)
 inertial = Inertial(Ports.PORT3)
+inertial.calibrate()
 
 # Drivebase Testing
 
-drivebase = TankDrivebase(left_motor, right_motor, rangeFinderFront, rangeFinderRight, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
+sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight]
+drivebase = TankDrivebase(left_motor, right_motor, sensorList, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
 
 def printSensors():
     while True:

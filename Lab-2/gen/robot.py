@@ -117,7 +117,7 @@ class TankDrivebase (Drivebase):
     gearing = 5 / 1
     wheelBase = 11
     circumference = math.pi * diameter
-    def __init__(self, _motorLeft, _motorRight, rangeFinderRight, rangeFinderFront, wheelDiameter, gearRatio, drivebaseWidth,
+    def __init__(self, _motorLeft, _motorRight, sensors, wheelDiameter, gearRatio, drivebaseWidth,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM, kP = 0.5):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
@@ -129,8 +129,9 @@ class TankDrivebase (Drivebase):
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.kP = kP
-        self.rangeFinderRightSide = rangeFinderRight
-        self.rangeFinderFront = rangeFinderFront
+        self.rangeFinderRightSide = sensors[0]
+        self.rangeFinderFront = sensors[1]
+        self.inertial = sensors[2]
         self.desiredDistance = 8.0
         if motorCorrectionConfig == None:
             motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
@@ -170,8 +171,32 @@ class TankDrivebase (Drivebase):
         wait(2000)
         while self.rangeFinderFront.distance(INCHES) > 8.0:
             self.wallFollowInches(11.0)
+        while self.motorLeft.position(self.rotationUnits) < 90:
+            self.drive(24,30)
         while self.rangeFinderFront.distance(INCHES) > 8.0:
             self.wallFollowInches(11.0)
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(-24,0)
+        while self.motorLeft.position(self.rotationUnits) < 90:
+            self.drive(24,30)
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(24,0)
+    def driveLab22(self):
+        wait(2000)
+        while self.rangeFinderFront.distance(INCHES) > 8.0:
+            self.wallFollowInches(11.0)
+        while self.inertial.heading() < 90:
+            self.drive(24,30)
+        self.inertial.set_heading(0)
+        while self.rangeFinderFront.distance(INCHES) > 8.0:
+            self.wallFollowInches(11.0)
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(-24,0)
+        while self.inertial.heading() < 90:
+            self.drive(24,30)
+        self.inertial.set_heading(0)
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(24,0)
 wheelDiameter = 4.0
 wheel_travel = math.pi*wheelDiameter
 track_width = 11
@@ -191,7 +216,9 @@ rangeFinderRight = Sonar(brain.three_wire_port.g)
 lineSensorLeft = Line(brain.three_wire_port.c)
 lineSensorRight = Line(brain.three_wire_port.d)
 inertial = Inertial(Ports.PORT3)
-drivebase = TankDrivebase(left_motor, right_motor, rangeFinderFront, rangeFinderRight, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
+inertial.calibrate()
+sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight]
+drivebase = TankDrivebase(left_motor, right_motor, sensorList, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
 def printSensors():
     while True:
         brain.screen.print_at("Front Range Finder: ", rangeFinderFront.distance(INCHES),x=0,y=20)

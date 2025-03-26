@@ -11,7 +11,7 @@ class TankDrivebase (Drivebase):
     wheelBase = 11
     circumference = math.pi * diameter
 
-    def __init__(self, _motorLeft, _motorRight, rangeFinderRight, rangeFinderFront, wheelDiameter, gearRatio, drivebaseWidth,
+    def __init__(self, _motorLeft, _motorRight, sensors, wheelDiameter, gearRatio, drivebaseWidth,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM, kP = 0.5):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
@@ -25,8 +25,9 @@ class TankDrivebase (Drivebase):
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.kP = kP
-        self.rangeFinderRightSide = rangeFinderRight
-        self.rangeFinderFront = rangeFinderFront
+        self.rangeFinderRightSide = sensors[0]
+        self.rangeFinderFront = sensors[1]
+        self.inertial = sensors[2]
 
         self.desiredDistance = 8.0
 
@@ -69,16 +70,6 @@ class TankDrivebase (Drivebase):
         right_speed = speed + direction
         self.motorLeft.set_velocity(left_speed, RPM)
         self.motorRight.set_velocity(right_speed, RPM)
-        
-        # if (direction < 0):
-        #     self.motorLeft.set_velocity(speed+abs(direction), RPM)
-        #     self.motorRight.set_velocity(speed-abs(direction), RPM)
-        # elif (direction > 0):
-        #     self.motorLeft.set_velocity(speed-abs(direction), RPM)
-        #     self.motorRight.set_velocity(speed+abs(direction), RPM)
-        # else:
-        #     self.motorLeft.set_velocity(speed, RPM)
-        #     self.motorRight.set_velocity(speed, RPM)
             
         self.motorLeft.spin(FORWARD)
         self.motorRight.spin(FORWARD)
@@ -93,9 +84,51 @@ class TankDrivebase (Drivebase):
         while self.rangeFinderFront.distance(INCHES) > 8.0:
             self.wallFollowInches(11.0)
         
+        #turn left 90 degrees
+        while self.motorLeft.position(self.rotationUnits) < 90:
+            self.drive(24,30)
+
         #drive until the second wall
         while self.rangeFinderFront.distance(INCHES) > 8.0:
             self.wallFollowInches(11.0)
 
         #back up a certain distance unless the front range finder can see far enough, if so then change 8 to the number
-        #turn left 90 degrees and drive a little forward
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(-24,0)
+
+        #turn left 90 degrees
+        while self.motorLeft.position(self.rotationUnits) < 90:
+            self.drive(24,30)
+
+        #drive forward
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(24,0)
+        
+
+    def driveLab22(self):
+        wait(2000)
+        #drive until first wall
+        while self.rangeFinderFront.distance(INCHES) > 8.0:
+            self.wallFollowInches(11.0)
+        
+        #turn left 90 degrees
+        while self.inertial.heading() < 90:
+            self.drive(24,30)
+        self.inertial.set_heading(0)
+
+        #drive until the second wall
+        while self.rangeFinderFront.distance(INCHES) > 8.0:
+            self.wallFollowInches(11.0)
+
+        #back up a certain distance unless the front range finder can see far enough, if so then change 8 to the number
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(-24,0)
+
+        #turn left 90 degrees
+        while self.inertial.heading() < 90:
+            self.drive(24,30)
+        self.inertial.set_heading(0)
+
+        #drive forward
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(24,0)
