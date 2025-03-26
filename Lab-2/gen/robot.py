@@ -157,24 +157,21 @@ class TankDrivebase (Drivebase):
             self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
     def drive(self, speed, direction):
-        if (direction < 0):
-            self.motorLeft.set_velocity(speed+abs(direction), RPM)
-            self.motorRight.set_velocity(speed-abs(direction), RPM)
-        elif (direction > 0):
-            self.motorLeft.set_velocity(speed-abs(direction), RPM)
-            self.motorRight.set_velocity(speed+abs(direction), RPM)
-        else:
-            self.motorLeft.set_velocity(speed, RPM)
-            self.motorRight.set_velocity(speed, RPM)
+        left_speed = speed - direction
+        right_speed = speed + direction
+        self.motorLeft.set_velocity(left_speed, RPM)
+        self.motorRight.set_velocity(right_speed, RPM)
         self.motorLeft.spin(FORWARD)
         self.motorRight.spin(FORWARD)
     def wallFollowInches(self, setDistanceFromWall):
-        while True:
-            rightError = self.rangeFinderRightSide.distance(INCHES) - setDistanceFromWall
-            self.drive(100, -self.kP*rightError)
+        rightError = self.rangeFinderRightSide.distance(INCHES) - setDistanceFromWall
+        self.drive(100, -self.kP*rightError)
     def driveLab21(self):
         wait(2000)
-        self.moveLen(24, 100)
+        while self.rangeFinderFront.distance(INCHES) > 8.0:
+            self.wallFollowInches(11.0)
+        while self.rangeFinderFront.distance(INCHES) > 8.0:
+            self.wallFollowInches(11.0)
 wheelDiameter = 4.0
 wheel_travel = math.pi*wheelDiameter
 track_width = 11

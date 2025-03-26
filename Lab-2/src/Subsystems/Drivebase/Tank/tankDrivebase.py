@@ -84,15 +84,18 @@ class TankDrivebase (Drivebase):
         self.motorRight.spin(FORWARD)
 
     def wallFollowInches(self, setDistanceFromWall):
-        while True:
-            rightError = self.rangeFinderRightSide.distance(INCHES) - setDistanceFromWall
-            self.drive(100, -self.kP*rightError)
+        rightError = self.rangeFinderRightSide.distance(INCHES) - setDistanceFromWall
+        self.drive(100, -self.kP*rightError)
 
     def driveLab21(self):
         wait(2000)
-        self.desiredDistance = 8.0
-        self.wallFollowInches(8.0)
-        # self.drive(30,30)
-        # self.desiredDistance = 8.0
-        # self.wallFollowInches(8.0)
-        # self.drive(30,30)
+        #drive until the first wall
+        while self.rangeFinderFront.distance(INCHES) > 8.0:
+            self.wallFollowInches(11.0)
+        
+        #drive until the second wall
+        while self.rangeFinderFront.distance(INCHES) > 8.0:
+            self.wallFollowInches(11.0)
+
+        #back up a certain distance unless the front range finder can see far enough, if so then change 8 to the number
+        #turn left 90 degrees and drive a little forward
