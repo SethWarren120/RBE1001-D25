@@ -1,9 +1,8 @@
 # Library imports
 from vex import *
-from asyncio import create_task
 
 class DrivebaseMotorCorrector:
-
+    print("hello :3")
     motors = []
 
     offset = 1
@@ -12,6 +11,7 @@ class DrivebaseMotorCorrector:
     units = DEGREES
 
     passive = False
+    passiveActive = False
     motorSnapshot = []
     loopTime = 20
 
@@ -19,14 +19,14 @@ class DrivebaseMotorCorrector:
     configured = True
 
     def __init__(self, motorList, config):
-        if len(motorList) != len(config.offsetList):
+        if len(motorList) != len(config.startingOffsets):
             raise Exception("Starting offset list does not contain the same number of entries as motors")
         
         self.motors = motorList
         self.offset = config.offset
-        self.offsetList = config.offsetList
+        self.offsetList = config.startingOffsets
         self.tolerance = config.tolerance
-        self.units = config.rotationUnits
+        self.units = config.units
         self.loopTime = config.loopTime
         self.enabled = config.enabled
         self.configured = config.configured
@@ -49,11 +49,11 @@ class DrivebaseMotorCorrector:
         
         self.passive = usePassiveMode
         if (usePassiveMode and ((not hasattr(self, 'passiveCorrectionTask')) or
-                                     (hasattr(self, 'passiveCorrectionTask') & self.passiveCorrectionTask.done()))):
+                                     (hasattr(self, 'passiveCorrectionTask') and not self.passiveActive))):
             self.motorSnapshot = self.__getMotorSnapshot()
-            self.passiveCorrectionTask = create_task(self.__passiveCorrectionLoop())
+            self.passiveCorrectionTask = Thread(self.__passiveCorrectionLoop)
         elif not usePassiveMode:
-            while hasattr(self, 'passiveCorrectionTask') and not self.passiveCorrectionTask.done():
+            while hasattr(self, 'passiveCorrectionTask') and self.passiveActive:
                 sleep(self.loopTime / 4)
 
     # Manual correction mode
@@ -86,13 +86,15 @@ class DrivebaseMotorCorrector:
             else:
                 block = False
 
-    async def __passiveCorrectionLoop(self):
+    def __passiveCorrectionLoop(self):
+        self.passiveActive = True
         while self.passive:
             sleep(self.loopTime)
             snapshot = self.__getMotorSnapshot()
             for i in range(len(snapshot)):
                 self.offsetList[i] = max(0, min(self.offset, self.offsetList[i] + (snapshot[i] - self.motorSnapshot[i])))
             self.motorSnapshot = snapshot
+        self.passiveActive = False
 
     def __getMotorSnapshot(self):
         snapshot = []
@@ -130,6 +132,7 @@ class DrivebaseMotorCorrectionProfile:
 
     @staticmethod
     def Disabled(rotationUnits = DEGREES):
-        config = DrivebaseMotorCorrectionProfile(0, [], 0, False, False, rotationUnits)
+        config = DrivebaseMotorCorrectionProfile(0, [0, 0], 0, False, False, rotationUnits)
+        print(config.startingOffsets)
         config.configured = False
         return config
