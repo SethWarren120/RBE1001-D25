@@ -117,8 +117,8 @@ class TankDrivebase (Drivebase):
     gearing = 5 / 1
     wheelBase = 11
     circumference = math.pi * diameter
-    def __init__(self, _motorLeft, _motorRight, wheelDiameter, gearRatio, drivebaseWidth,
-                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
+    def __init__(self, _motorLeft, _motorRight, rangeFinderRight, rangeFinderFront, wheelDiameter, gearRatio, drivebaseWidth,
+                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM, kP = 0.5):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
         self.diameter = wheelDiameter
@@ -128,6 +128,10 @@ class TankDrivebase (Drivebase):
         self.dpi = 360.0 / self.circumference
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
+        self.kP = kP
+        self.rangeFinderRightSide = rangeFinderRight
+        self.rangeFinderFront = rangeFinderFront
+        self.desiredDistance = 8.0
         if motorCorrectionConfig == None:
             motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
         else:
@@ -152,39 +156,25 @@ class TankDrivebase (Drivebase):
         else:
             self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
-def drive(speed, direction):
-    motor_direction = FORWARD if speed >= 0 else REVERSE
-    speed_abs = abs(speed)
-    direction_normalized = max(min(direction / 100.0, 1.0), -1.0)
-    left_speed = speed_abs
-    right_speed = speed_abs
-    if direction_normalized > 0:  # Turn left
-        left_speed = speed_abs * (1.0 - direction_normalized)
-    elif direction_normalized < 0:  # Turn right
-        right_speed = speed_abs * (1.0 + direction_normalized)
-    left_motor.spin(motor_direction, left_speed, RPM, False)
-    right_motor.spin(motor_direction, right_speed, RPM, True)
-def wallFollowInches(setDistanceFromWall):
-    actualSetpoint = setDistanceFromWall - 1.0
-    minDistance = 1.0  # Minimum safe distance (inches)
-    maxDistance = 20.0  # Maximum reliable sensor distance (inches)
-    try:
+    def drive(self, speed, direction):
+        if (direction < 0):
+            self.motorLeft.set_velocity(speed+abs(direction), RPM)
+            self.motorRight.set_velocity(speed-abs(direction), RPM)
+        elif (direction > 0):
+            self.motorLeft.set_velocity(speed-abs(direction), RPM)
+            self.motorRight.set_velocity(speed+abs(direction), RPM)
+        else:
+            self.motorLeft.set_velocity(speed, RPM)
+            self.motorRight.set_velocity(speed, RPM)
+        self.motorLeft.spin(FORWARD)
+        self.motorRight.spin(FORWARD)
+    def wallFollowInches(self, setDistanceFromWall):
         while True:
-            currentDistance = rangeFinderRightSide.distance(INCHES)
-            error = currentDistance - actualSetpoint
-            if currentDistance < minDistance:
-                steeringCorrection = 75  # Turn left (away from wall)
-            elif currentDistance > maxDistance:
-                steeringCorrection = -50  # Turn right (toward wall)
-            else:
-                steeringCorrection = kP * error
-                steeringCorrection = max(min(steeringCorrection, 100), -100)
-            drive(100, steeringCorrection)
-            if (rangeFinderFront.distance(INCHES) < 8):
-                drive(30,100)
-    finally:
-        left_motor.stop()
-        right_motor.stop()
+            rightError = self.rangeFinderRightSide.distance(INCHES) - setDistanceFromWall
+            self.drive(100, -self.kP*rightError)
+    def driveLab21(self):
+        wait(2000)
+        self.moveLen(24, 100)
 wheelDiameter = 4.0
 wheel_travel = math.pi*wheelDiameter
 track_width = 11
@@ -195,10 +185,26 @@ degreesPerInch = 360.0 / wheelCircumference
 brain=Brain()
 left_motor = Motor(Ports.PORT10, 18_1, True)
 right_motor = Motor(Ports.PORT1, 18_1, False)
-left_motor.set_velocity(30, RPM)
+left_motor.set_velocity(200, RPM)
 left_motor.reset_position()
-right_motor.set_velocity(30, RPM)
+right_motor.set_velocity(200, RPM)
 right_motor.reset_position()
-drivebase = TankDrivebase(left_motor, right_motor, wheelDiameter, gear_ratio, wheel_base)
-drivebase.moveLen(5, 30)
-drivebase.turnDeg(90, 30)
+rangeFinderFront = Sonar(brain.three_wire_port.e)
+rangeFinderRight = Sonar(brain.three_wire_port.g)
+lineSensorLeft = Line(brain.three_wire_port.c)
+lineSensorRight = Line(brain.three_wire_port.d)
+inertial = Inertial(Ports.PORT3)
+drivebase = TankDrivebase(left_motor, right_motor, rangeFinderFront, rangeFinderRight, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
+def printSensors():
+    while True:
+        brain.screen.print_at("Front Range Finder: ", rangeFinderFront.distance(INCHES),x=0,y=20)
+        brain.screen.print_at("Right Range Finder: ", rangeFinderRight.distance(INCHES),x=0,y=40)
+        brain.screen.print_at("Left Line Sensor: ", lineSensorLeft.reflectivity(),x=0,y=60)
+        brain.screen.print_at("Right Line Sensor: ", lineSensorRight.reflectivity(),x=0,y=80)
+        brain.screen.print_at("Inertial: ", inertial.heading(),x=0,y=100)
+        brain.screen.print_at("direction: ", 0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=120)
+        brain.screen.print_at("speed1: ", 100+0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=140)
+        brain.screen.print_at("speed2: ", 100-0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=160)
+        brain.screen.render()
+sensorsThread = Thread(printSensors)
+drivebase.driveLab21()

@@ -10,8 +10,7 @@ class TankDrivebase (Drivebase):
     gearing = 5 / 1
     wheelBase = 11
     circumference = math.pi * diameter
-    kP = 0.5
-    
+
     def __init__(self, _motorLeft, _motorRight, rangeFinderRight, rangeFinderFront, wheelDiameter, gearRatio, drivebaseWidth,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM, kP = 0.5):
         self.motorLeft = _motorLeft
@@ -28,6 +27,8 @@ class TankDrivebase (Drivebase):
         self.kP = kP
         self.rangeFinderRightSide = rangeFinderRight
         self.rangeFinderFront = rangeFinderFront
+
+        self.desiredDistance = 8.0
 
         if motorCorrectionConfig == None:
             motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
@@ -64,46 +65,29 @@ class TankDrivebase (Drivebase):
 
     
     def drive(self, speed, direction):
-        motor_direction = FORWARD if speed >= 0 else REVERSE
-        speed_abs = abs(speed)
-        direction_normalized = max(min(direction / 100.0, 1.0), -1.0)
-        left_speed = speed_abs
-        right_speed = speed_abs
-        
-        if direction_normalized > 0:  # Turn left
-            left_speed = speed_abs * (1.0 - direction_normalized)
-        elif direction_normalized < 0:  # Turn right
-            right_speed = speed_abs * (1.0 + direction_normalized)
-
-        self.motorLeft.spin(motor_direction, left_speed, RPM, False)
-        self.motorRight.spin(motor_direction, right_speed, RPM, True)
+        if (direction < 0):
+            self.motorLeft.set_velocity(speed+abs(direction), RPM)
+            self.motorRight.set_velocity(speed-abs(direction), RPM)
+        elif (direction > 0):
+            self.motorLeft.set_velocity(speed-abs(direction), RPM)
+            self.motorRight.set_velocity(speed+abs(direction), RPM)
+        else:
+            self.motorLeft.set_velocity(speed, RPM)
+            self.motorRight.set_velocity(speed, RPM)
+            
+        self.motorLeft.spin(FORWARD)
+        self.motorRight.spin(FORWARD)
 
     def wallFollowInches(self, setDistanceFromWall):
-        actualSetpoint = setDistanceFromWall - 1.0
-        minDistance = 1.0  # Minimum safe distance (inches)
-        maxDistance = 20.0  # Maximum reliable sensor distance (inches)
-        
-        try:
-            while True:
-                # Get current distance from wall
-                currentDistance = self.rangeFinderRightSide.distance(INCHES)
-                
-                error = currentDistance - actualSetpoint
-                
-                if currentDistance < minDistance:
-                    steeringCorrection = 75  # Turn left (away from wall)
-                elif currentDistance > maxDistance:
-                    steeringCorrection = -50  # Turn right (toward wall)
-                else:
-                    steeringCorrection = self.kP * error
-                    steeringCorrection = max(min(steeringCorrection, 100), -100)
-                
-                self.drive(100, steeringCorrection)
+        while True:
+            rightError = self.rangeFinderRightSide.distance(INCHES) - setDistanceFromWall
+            self.drive(100, -self.kP*rightError)
 
-                #If it is <8 inches from the front wall, turn left
-                if (self.rangeFinderFront.distance(INCHES) < 8):
-                    self.drive(30,100)
-        finally:
-            # Stop motors when done
-            self.motorLeft.stop()
-            self.motorRight.stop()
+    def driveLab21(self):
+        wait(2000)
+        self.desiredDistance = 8.0
+        self.wallFollowInches(8.0)
+        # self.drive(30,30)
+        # self.desiredDistance = 8.0
+        # self.wallFollowInches(8.0)
+        # self.drive(30,30)
