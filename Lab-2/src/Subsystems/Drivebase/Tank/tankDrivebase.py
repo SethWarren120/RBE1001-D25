@@ -12,9 +12,8 @@ class TankDrivebase (Drivebase):
     circumference = math.pi * diameter
     kP = 0.5
     
-    def __init__(self, _motorLeft, _motorRight, wheelDiameter, gearRatio, drivebaseWidth,
-                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM, kP = 0.5,
-                 rangeFinderRightSide = None, rangeFinderFront = None):
+    def __init__(self, _motorLeft, _motorRight, rangeFinderRight, rangeFinderFront, wheelDiameter, gearRatio, drivebaseWidth,
+                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM, kP = 0.5):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
 
@@ -27,7 +26,7 @@ class TankDrivebase (Drivebase):
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.kP = kP
-        self.rangeFinderRightSide = rangeFinderRightSide
+        self.rangeFinderRightSide = rangeFinderRight
         self.rangeFinderFront = rangeFinderFront
 
         if motorCorrectionConfig == None:
@@ -99,11 +98,11 @@ class TankDrivebase (Drivebase):
                     steeringCorrection = self.kP * error
                     steeringCorrection = max(min(steeringCorrection, 100), -100)
                 
-                self.drive(self, 100, steeringCorrection)
+                self.drive(100, steeringCorrection)
 
                 #If it is <8 inches from the front wall, turn left
                 if (self.rangeFinderFront.distance(INCHES) < 8):
-                    self.drive(self, 30,100)
+                    self.drive(30,100)
         finally:
             # Stop motors when done
             self.motorLeft.stop()

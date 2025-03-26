@@ -38,5 +38,6 @@ rangeFinderRight = Sonar(Ports.PORT4)
 
 # Drivebase Testing
 
-drivebase = TankDrivebase(left_motor, right_motor, wheelDiameter, gear_ratio, wheel_base, kP=0.5, rangeFinderFront=rangeFinderFront, rangeFinderRightSide=rangeFinderRight)
+drivebase = TankDrivebase(left_motor, right_motor, rangeFinderFront, rangeFinderRight, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
 
+drivebase.drive(24, 30)
