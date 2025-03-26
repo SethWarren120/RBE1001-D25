@@ -65,15 +65,20 @@ class TankDrivebase (Drivebase):
 
     
     def drive(self, speed, direction):
-        if (direction < 0):
-            self.motorLeft.set_velocity(speed+abs(direction), RPM)
-            self.motorRight.set_velocity(speed-abs(direction), RPM)
-        elif (direction > 0):
-            self.motorLeft.set_velocity(speed-abs(direction), RPM)
-            self.motorRight.set_velocity(speed+abs(direction), RPM)
-        else:
-            self.motorLeft.set_velocity(speed, RPM)
-            self.motorRight.set_velocity(speed, RPM)
+        left_speed = speed - direction
+        right_speed = speed + direction
+        self.motorLeft.set_velocity(left_speed, RPM)
+        self.motorRight.set_velocity(right_speed, RPM)
+        
+        # if (direction < 0):
+        #     self.motorLeft.set_velocity(speed+abs(direction), RPM)
+        #     self.motorRight.set_velocity(speed-abs(direction), RPM)
+        # elif (direction > 0):
+        #     self.motorLeft.set_velocity(speed-abs(direction), RPM)
+        #     self.motorRight.set_velocity(speed+abs(direction), RPM)
+        # else:
+        #     self.motorLeft.set_velocity(speed, RPM)
+        #     self.motorRight.set_velocity(speed, RPM)
             
         self.motorLeft.spin(FORWARD)
         self.motorRight.spin(FORWARD)
