@@ -4,6 +4,7 @@ from vex import *
 class Drivebase:
     pass
 class DrivebaseMotorCorrector:
+    print("hello :3")
     motors = []
     offset = 1
     offsetList = []
@@ -135,7 +136,6 @@ class TankDrivebase (Drivebase):
     def moveLen(self, len, speed):
         deg = 360 * ((len / self.circumference) * self.gearing)
         self.motorCorrector.setPassiveMode(False)
-        print("Helo")
         self.motorCorrector.correctMotors([deg, deg])
         self.motorLeft.spin_for(FORWARD, deg, self.rotationUnits, speed, self.speedUnits, False)
         self.motorRight.spin_for(FORWARD, deg, self.rotationUnits, speed, self.speedUnits, True)
@@ -152,6 +152,39 @@ class TankDrivebase (Drivebase):
         else:
             self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
+def drive(speed, direction):
+    motor_direction = FORWARD if speed >= 0 else REVERSE
+    speed_abs = abs(speed)
+    direction_normalized = max(min(direction / 100.0, 1.0), -1.0)
+    left_speed = speed_abs
+    right_speed = speed_abs
+    if direction_normalized > 0:  # Turn left
+        left_speed = speed_abs * (1.0 - direction_normalized)
+    elif direction_normalized < 0:  # Turn right
+        right_speed = speed_abs * (1.0 + direction_normalized)
+    left_motor.spin(motor_direction, left_speed, RPM, False)
+    right_motor.spin(motor_direction, right_speed, RPM, True)
+def wallFollowInches(setDistanceFromWall):
+    actualSetpoint = setDistanceFromWall - 1.0
+    minDistance = 1.0  # Minimum safe distance (inches)
+    maxDistance = 20.0  # Maximum reliable sensor distance (inches)
+    try:
+        while True:
+            currentDistance = rangeFinderRightSide.distance(INCHES)
+            error = currentDistance - actualSetpoint
+            if currentDistance < minDistance:
+                steeringCorrection = 75  # Turn left (away from wall)
+            elif currentDistance > maxDistance:
+                steeringCorrection = -50  # Turn right (toward wall)
+            else:
+                steeringCorrection = kP * error
+                steeringCorrection = max(min(steeringCorrection, 100), -100)
+            drive(100, steeringCorrection)
+            if (rangeFinderFront.distance(INCHES) < 8):
+                drive(30,100)
+    finally:
+        left_motor.stop()
+        right_motor.stop()
 wheelDiameter = 4.0
 wheel_travel = math.pi*wheelDiameter
 track_width = 11
@@ -160,7 +193,6 @@ gear_ratio = 5
 wheelCircumference = 3.14 * wheelDiameter 
 degreesPerInch = 360.0 / wheelCircumference
 brain=Brain()
-brain.screen.print("Hello V5")
 left_motor = Motor(Ports.PORT10, 18_1, True)
 right_motor = Motor(Ports.PORT1, 18_1, False)
 left_motor.set_velocity(30, RPM)
