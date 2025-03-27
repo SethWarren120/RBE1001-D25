@@ -117,21 +117,26 @@ class TankDrivebase (Drivebase):
     gearing = 5 / 1
     wheelBase = 11
     circumference = math.pi * diameter
-    def __init__(self, _motorLeft, _motorRight, sensors, wheelDiameter, gearRatio, drivebaseWidth,
+    def __init__(self, _motorLeft, _motorRight, _armMotor, sensors, wheelDiameter, gearRatio, drivebaseWidth,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM, kP = 0.5):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
+        self.armMotor = _armMotor
         self.diameter = wheelDiameter
         self.gearing = gearRatio
         self.wheelBase = drivebaseWidth
         self.circumference = math.pi * wheelDiameter
         self.dpi = 360.0 / self.circumference
+        self.armToggled = False
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.kP = kP
         self.rangeFinderRightSide = sensors[0]
         self.rangeFinderFront = sensors[1]
         self.inertial = sensors[2]
+        self.leftLineSensor = sensors[3]
+        self.rightLineSensor = sensors[4]
+        self.bumpSwitch = sensors[5]
         self.desiredDistance = 8.0
         if motorCorrectionConfig == None:
             motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
@@ -167,13 +172,22 @@ class TankDrivebase (Drivebase):
     def wallFollowInches(self, setDistanceFromWall):
         rightError = self.rangeFinderRightSide.distance(INCHES) - setDistanceFromWall
         self.drive(100, -self.kP*rightError)
+    def hitWall(self):
+        return self.rangeFinderFront.distance(INCHES) < self.desiredDistance
+    def onLine(self, sensor):
+        return sensor.reflectivity() < 50
+    def toggleBumpSwitch(self):
+        self.armToggled = not self.armToggled
+    def armTo(self, position):
+        self.armMotor.spin_to_position(position, DEGREES, 100, RPM, False)
     def driveLab21(self):
         wait(2000)
-        while self.rangeFinderFront.distance(INCHES) > 8.0:
+        self.desiredDistance = 8.0
+        while not self.hitWall():
             self.wallFollowInches(11.0)
         while self.motorLeft.position(self.rotationUnits) < 90:
             self.drive(24,30)
-        while self.rangeFinderFront.distance(INCHES) > 8.0:
+        while not self.hitWall():
             self.wallFollowInches(11.0)
         while self.motorLeft.position(self.rotationUnits) < 20:
             self.drive(-24,0)
@@ -183,12 +197,12 @@ class TankDrivebase (Drivebase):
             self.drive(24,0)
     def driveLab22(self):
         wait(2000)
-        while self.rangeFinderFront.distance(INCHES) > 8.0:
+        while not self.hitWall():
             self.wallFollowInches(11.0)
         while self.inertial.heading() < 90:
             self.drive(24,30)
         self.inertial.set_heading(0)
-        while self.rangeFinderFront.distance(INCHES) > 8.0:
+        while not self.hitWall():
             self.wallFollowInches(11.0)
         while self.motorLeft.position(self.rotationUnits) < 20:
             self.drive(-24,0)
@@ -197,6 +211,38 @@ class TankDrivebase (Drivebase):
         self.inertial.set_heading(0)
         while self.motorLeft.position(self.rotationUnits) < 20:
             self.drive(24,0)
+    def driveLab23(self):
+        wait(2000)
+        while not self.hitWall():
+            if (not self.onLine(self.leftLineSensor)):
+                self.drive(24, -20)
+            elif (not self.onLine(self.rightLineSensor)):
+                self.drive(24, 20)
+            else:
+                self.drive(24, 0)
+        while self.inertial.heading() < 90:
+            self.drive(24,30)
+        self.inertial.set_heading(0)
+        while not self.hitWall():
+            if (not self.onLine(self.leftLineSensor)):
+                self.drive(24, -20)
+            elif (not self.onLine(self.rightLineSensor)):
+                self.drive(24, 20)
+            else:
+                self.drive(24, 0)
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(-24,0)
+        while self.inertial.heading() < 90:
+            self.drive(24,30)
+        self.inertial.set_heading(0)
+        while self.motorLeft.position(self.rotationUnits) < 20:
+            self.drive(24,0)
+    def lab24(self):
+        while True:
+            if self.armToggled:
+                self.armTo(90)
+            else:
+                self.armTo(0)
 wheelDiameter = 4.0
 wheel_travel = math.pi*wheelDiameter
 track_width = 11
@@ -211,14 +257,18 @@ left_motor.set_velocity(200, RPM)
 left_motor.reset_position()
 right_motor.set_velocity(200, RPM)
 right_motor.reset_position()
+arm_motor = Motor(Ports.PORT4, 18_1, False)
+arm_motor.set_velocity(200, RPM)
+arm_motor.reset_position()
 rangeFinderFront = Sonar(brain.three_wire_port.e)
 rangeFinderRight = Sonar(brain.three_wire_port.g)
 lineSensorLeft = Line(brain.three_wire_port.c)
 lineSensorRight = Line(brain.three_wire_port.d)
 inertial = Inertial(Ports.PORT3)
 inertial.calibrate()
-sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight]
-drivebase = TankDrivebase(left_motor, right_motor, sensorList, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
+bumpSwitch = DigitalIn(Ports.PORT5)
+sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch]
+drivebase = TankDrivebase(left_motor, right_motor, arm_motor, sensorList, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
 def printSensors():
     while True:
         brain.screen.print_at("Front Range Finder: ", rangeFinderFront.distance(INCHES),x=0,y=20)
@@ -229,6 +279,9 @@ def printSensors():
         brain.screen.print_at("direction: ", 0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=120)
         brain.screen.print_at("speed1: ", 100+0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=140)
         brain.screen.print_at("speed2: ", 100-0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=160)
+        brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=180)
+        brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=200)
+        brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=220)
         brain.screen.render()
 sensorsThread = Thread(printSensors)
 drivebase.driveLab21()

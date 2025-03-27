@@ -33,17 +33,21 @@ left_motor.reset_position()
 right_motor.set_velocity(200, RPM)
 right_motor.reset_position()
 
+arm_motor = Motor(Ports.PORT4, 18_1, False)
+arm_motor.set_velocity(200, RPM)
+arm_motor.reset_position()
+
 rangeFinderFront = Sonar(brain.three_wire_port.e)
 rangeFinderRight = Sonar(brain.three_wire_port.g)
 lineSensorLeft = Line(brain.three_wire_port.c)
 lineSensorRight = Line(brain.three_wire_port.d)
 inertial = Inertial(Ports.PORT3)
 inertial.calibrate()
+bumpSwitch = DigitalIn(Ports.PORT5)
 
 # Drivebase Testing
-
-sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight]
-drivebase = TankDrivebase(left_motor, right_motor, sensorList, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
+sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch]
+drivebase = TankDrivebase(left_motor, right_motor, arm_motor, sensorList, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
 
 def printSensors():
     while True:
@@ -55,6 +59,9 @@ def printSensors():
         brain.screen.print_at("direction: ", 0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=120)
         brain.screen.print_at("speed1: ", 100+0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=140)
         brain.screen.print_at("speed2: ", 100-0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=160)
+        brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=180)
+        brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=200)
+        brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=220)
         brain.screen.render()
 
 
