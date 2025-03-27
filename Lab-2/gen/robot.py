@@ -266,7 +266,7 @@ lineSensorLeft = Line(brain.three_wire_port.c)
 lineSensorRight = Line(brain.three_wire_port.d)
 inertial = Inertial(Ports.PORT3)
 inertial.calibrate()
-bumpSwitch = DigitalIn(Ports.PORT5)
+bumpSwitch = Bumper(brain.three_wire_port.a)
 sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch]
 drivebase = TankDrivebase(left_motor, right_motor, arm_motor, sensorList, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
 def printSensors():

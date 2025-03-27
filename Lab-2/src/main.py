@@ -43,7 +43,7 @@ lineSensorLeft = Line(brain.three_wire_port.c)
 lineSensorRight = Line(brain.three_wire_port.d)
 inertial = Inertial(Ports.PORT3)
 inertial.calibrate()
-bumpSwitch = DigitalIn(Ports.PORT5)
+bumpSwitch = Bumper(brain.three_wire_port.a)
 
 # Drivebase Testing
 sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch]
