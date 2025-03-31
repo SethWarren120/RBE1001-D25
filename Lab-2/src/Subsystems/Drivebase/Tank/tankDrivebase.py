@@ -77,7 +77,6 @@ class TankDrivebase ():
     def hitWall(self):
         return self.rangeFinderFront.distance(INCHES) < self.desiredDistance
     
-    #modify to correct values
     def onLine(self, sensor):
         whiteLineValue = 94
         return sensor.reflectivity() < whiteLineValue
@@ -101,7 +100,7 @@ class TankDrivebase ():
         self.motorLeft.reset_position()
         #turn left 90 degrees
         while abs(self.motorLeft.position(self.rotationUnits)) < 90*10.75:
-            self.drive(24,200)
+            self.drive(200,200)
         
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -118,7 +117,7 @@ class TankDrivebase ():
         self.motorLeft.reset_position()
         #turn left 90 degrees
         while self.motorLeft.position(self.rotationUnits) < 90*10.75:
-            self.drive(24,200)
+            self.drive(200,200)
 
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -140,8 +139,8 @@ class TankDrivebase ():
         self.motorRight.stop()
 
         #turn left 90 degrees
-        while self.inertial.heading() < 90*10.75:
-            self.drive(24,30)
+        while abs(self.inertial.heading()) < 90:
+            self.drive(200,200)
         self.inertial.set_heading(0)
 
         self.motorLeft.stop()
@@ -157,8 +156,8 @@ class TankDrivebase ():
         self.motorRight.stop()
 
         #turn left 90 degrees
-        while self.inertial.heading() < 90*10.75:
-            self.drive(24,30)
+        while abs(self.inertial.heading()) < 90:
+            self.drive(200,200)
         self.inertial.set_heading(0)
 
         self.motorLeft.stop()
@@ -166,7 +165,7 @@ class TankDrivebase ():
 
         #drive forward
         while self.motorLeft.position(self.rotationUnits) < 20:
-            self.drive(24,0)
+            self.drive(200,0)
 
     def driveLab23(self):
         self.desiredDistance = 8
@@ -176,15 +175,15 @@ class TankDrivebase ():
         rightTimeOffLine = 1
         while not self.hitWall():
             if (not self.onLine(self.leftLineSensor)):
-                self.drive(24, -20*leftTimeOffLine)
+                self.drive(200, -20*leftTimeOffLine)
                 leftTimeOffLine += 1
                 rightTimeOffLine = 1
             elif (not self.onLine(self.rightLineSensor)):
-                self.drive(24, 20*rightTimeOffLine)
+                self.drive(200, 20*rightTimeOffLine)
                 leftTimeOffLine = 1
                 rightTimeOffLine += 1
             else:
-                self.drive(24, 0)
+                self.drive(200, 0)
                 leftTimeOffLine = 1
                 rightTimeOffLine = 1
             wait(20)
@@ -193,8 +192,8 @@ class TankDrivebase ():
         self.motorRight.stop()
         
         #turn left 90 degrees
-        while self.inertial.heading() < 90:
-            self.drive(24,30)
+        while abs(self.inertial.heading()) < 90:
+            self.drive(200,200)
         self.inertial.set_heading(0)
 
         self.motorLeft.stop()
@@ -206,15 +205,15 @@ class TankDrivebase ():
         rightTimeOffLine = 1
         while not self.hitWall():
             if (not self.onLine(self.leftLineSensor)):
-                self.drive(24, -20*leftTimeOffLine)
+                self.drive(200, -20*leftTimeOffLine)
                 leftTimeOffLine += 1
                 rightTimeOffLine = 1
             elif (not self.onLine(self.rightLineSensor)):
-                self.drive(24, 20*rightTimeOffLine)
+                self.drive(200, 20*rightTimeOffLine)
                 leftTimeOffLine = 1
                 rightTimeOffLine += 1
             else:
-                self.drive(24, 0)
+                self.drive(200, 0)
                 leftTimeOffLine = 1
                 rightTimeOffLine = 1
             wait(20)
@@ -223,8 +222,8 @@ class TankDrivebase ():
         self.motorRight.stop()
 
         #turn left 90 degrees
-        while self.inertial.heading() < 90:
-            self.drive(24,30)
+        while abs(self.inertial.heading()) < 90:
+            self.drive(200,200)
         self.inertial.set_heading(0)
 
         self.motorLeft.stop()
@@ -232,7 +231,7 @@ class TankDrivebase ():
 
         #drive forward
         while self.motorLeft.position(self.rotationUnits) < 20:
-            self.drive(24,0)
+            self.drive(200,0)
 
     def lab24(self):
         while True:
