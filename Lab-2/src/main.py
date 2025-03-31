@@ -56,21 +56,10 @@ drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=2
 
 def printSensors():
     while True:
-        #debugging
-        brain.screen.print_at("Front Range Finder: ", rangeFinderFront.distance(INCHES),x=0,y=20)
-        brain.screen.print_at("Right Range Finder: ", rangeFinderRight.distance(INCHES),x=0,y=40)
-        brain.screen.print_at("Left Line Sensor: ", lineSensorLeft.reflectivity(),x=0,y=60)
-        brain.screen.print_at("Right Line Sensor: ", lineSensorRight.reflectivity(),x=0,y=80)
-        brain.screen.print_at("Inertial: ", inertial.heading(),x=0,y=100)
-        brain.screen.print_at("position: ", left_motor.position(),x=0,y=120)
-        brain.screen.print_at("speed1: ", 100+0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=140)
-        brain.screen.print_at("speed2: ", 100-0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=160)
-        brain.screen.print_at("actual velocity1: ", left_motor.velocity(),x=0,y=180)
-        brain.screen.print_at("actual velocity2: ", right_motor.velocity(),x=0,y=200)
         #lab 2.4
-        # brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=180)
-        # brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=200)
-        # brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=220)
+        brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=20)
+        brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=40)
+        brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=60)
         brain.screen.render()
 
 sensorsThread = Thread(printSensors)
