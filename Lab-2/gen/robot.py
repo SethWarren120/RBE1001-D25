@@ -182,9 +182,10 @@ class TankDrivebase ():
         self.motorRight.stop()
         self.motorLeft.reset_position()
         while abs(self.motorLeft.position(self.rotationUnits)) < 90*10.75:
-            self.drive(200,200)
+            self.drive(0,200)
         self.motorLeft.stop()
         self.motorRight.stop()
+        wait(20)
         self.desiredDistance = 43.15
         while not self.hitWall():
             self.wallFollowInches(11.0)
@@ -193,9 +194,10 @@ class TankDrivebase ():
         self.motorRight.stop()
         self.motorLeft.reset_position()
         while self.motorLeft.position(self.rotationUnits) < 90*10.75:
-            self.drive(200,200)
+            self.drive(0,200)
         self.motorLeft.stop()
         self.motorRight.stop()
+        wait(20)
         self.motorLeft.reset_position()
         while self.motorLeft.position(self.rotationUnits) < 20:
             self.drive(200,0)
@@ -207,7 +209,7 @@ class TankDrivebase ():
         self.motorLeft.stop()
         self.motorRight.stop()
         while abs(self.inertial.heading()) < 90:
-            self.drive(200,200)
+            self.drive(0,200)
         self.inertial.set_heading(0)
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -218,7 +220,7 @@ class TankDrivebase ():
         self.motorLeft.stop()
         self.motorRight.stop()
         while abs(self.inertial.heading()) < 90:
-            self.drive(200,200)
+            self.drive(0,200)
         self.inertial.set_heading(0)
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -245,7 +247,7 @@ class TankDrivebase ():
         self.motorLeft.stop()
         self.motorRight.stop()
         while abs(self.inertial.heading()) < 90:
-            self.drive(200,200)
+            self.drive(0,200)
         self.inertial.set_heading(0)
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -269,7 +271,7 @@ class TankDrivebase ():
         self.motorLeft.stop()
         self.motorRight.stop()
         while abs(self.inertial.heading()) < 90:
-            self.drive(200,200)
+            self.drive(0,200)
         self.inertial.set_heading(0)
         self.motorLeft.stop()
         self.motorRight.stop()

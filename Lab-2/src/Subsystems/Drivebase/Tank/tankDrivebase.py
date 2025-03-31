@@ -100,11 +100,13 @@ class TankDrivebase ():
         self.motorLeft.reset_position()
         #turn left 90 degrees
         while abs(self.motorLeft.position(self.rotationUnits)) < 90*10.75:
-            self.drive(200,200)
+            self.drive(0,200)
         
         self.motorLeft.stop()
         self.motorRight.stop()
         
+        wait(20)
+
         self.desiredDistance = 43.15
         # #drive until the second wall
         while not self.hitWall():
@@ -117,10 +119,12 @@ class TankDrivebase ():
         self.motorLeft.reset_position()
         #turn left 90 degrees
         while self.motorLeft.position(self.rotationUnits) < 90*10.75:
-            self.drive(200,200)
+            self.drive(0,200)
 
         self.motorLeft.stop()
         self.motorRight.stop()
+
+        wait(20)
 
         self.motorLeft.reset_position()
         #drive forward
@@ -140,7 +144,7 @@ class TankDrivebase ():
 
         #turn left 90 degrees
         while abs(self.inertial.heading()) < 90:
-            self.drive(200,200)
+            self.drive(0,200)
         self.inertial.set_heading(0)
 
         self.motorLeft.stop()
@@ -157,7 +161,7 @@ class TankDrivebase ():
 
         #turn left 90 degrees
         while abs(self.inertial.heading()) < 90:
-            self.drive(200,200)
+            self.drive(0,200)
         self.inertial.set_heading(0)
 
         self.motorLeft.stop()
@@ -193,7 +197,7 @@ class TankDrivebase ():
         
         #turn left 90 degrees
         while abs(self.inertial.heading()) < 90:
-            self.drive(200,200)
+            self.drive(0,200)
         self.inertial.set_heading(0)
 
         self.motorLeft.stop()
@@ -223,7 +227,7 @@ class TankDrivebase ():
 
         #turn left 90 degrees
         while abs(self.inertial.heading()) < 90:
-            self.drive(200,200)
+            self.drive(0,200)
         self.inertial.set_heading(0)
 
         self.motorLeft.stop()
