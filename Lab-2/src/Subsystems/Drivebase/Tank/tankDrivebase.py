@@ -1,38 +1,31 @@
 # Library imports
 from vex import *
-#from util import *
-from Subsystems.Drivebase.drivebase import Drivebase
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
 
-class TankDrivebase (Drivebase):
-
-    diameter = 4
-    gearing = 5 / 1
-    wheelBase = 11
-    circumference = math.pi * diameter
-
-    def __init__(self, _motorLeft, _motorRight, _armMotor, sensors, wheelDiameter, gearRatio, drivebaseWidth,
+class TankDrivebase ():
+    def __init__(self, _motorLeft, _motorRight, robotConfig,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM, kP = 0.5):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
-        self.armMotor = _armMotor
 
-        self.diameter = wheelDiameter
-        self.gearing = gearRatio
-        self.wheelBase = drivebaseWidth
-        self.circumference = math.pi * wheelDiameter
-        self.dpi = 360.0 / self.circumference
+        self.diameter = robotConfig.getWheelDiameter()
+        self.gearing = robotConfig.getGearRatio()
+        self.wheelBase = robotConfig.getDrivebaseWidth()
+        self.circumference = robotConfig.getCircumference()
+        self.dpi = robotConfig.getDPI()
         self.armToggled = False
 
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.kP = kP
-        self.rangeFinderRightSide = sensors[0]
-        self.rangeFinderFront = sensors[1]
-        self.inertial = sensors[2]
-        self.leftLineSensor = sensors[3]
-        self.rightLineSensor = sensors[4]
-        self.bumpSwitch = sensors[5]
+
+        self.rangeFinderRightSide = robotConfig.getRightRangeFinder()
+        self.rangeFinderFront = robotConfig.getFrontRangeFinder()
+        self.inertial = robotConfig.getInertialSensor()
+        self.leftLineSensor = robotConfig.getLeftLineSensor()
+        self.rightLineSensor = robotConfig.getRightLineSensor()
+        self.bumpSwitch = robotConfig.getBumpSwitch()
+        self.armMotor = robotConfig.getArmMotor()
 
         self.desiredDistance = 8.0
 
@@ -73,22 +66,21 @@ class TankDrivebase (Drivebase):
     def drive(self, speed, direction):
         left_speed = speed - direction
         right_speed = speed + direction
-        self.motorLeft.set_velocity(left_speed, RPM)
-        self.motorRight.set_velocity(right_speed, RPM)
-            
-        self.motorLeft.spin(FORWARD)
-        self.motorRight.spin(FORWARD)
+
+        self.motorLeft.spin(FORWARD,left_speed)
+        self.motorRight.spin(FORWARD,right_speed)
 
     def wallFollowInches(self, setDistanceFromWall):
         rightError = self.rangeFinderRightSide.distance(INCHES) - setDistanceFromWall
-        self.drive(100, -self.kP*rightError)
+        self.drive(200, -self.kP*rightError)
 
     def hitWall(self):
         return self.rangeFinderFront.distance(INCHES) < self.desiredDistance
     
     #modify to correct values
     def onLine(self, sensor):
-        return sensor.reflectivity() < 50
+        whiteLineValue = 94
+        return sensor.reflectivity() < whiteLineValue
     
     def toggleBumpSwitch(self):
         self.armToggled = not self.armToggled
@@ -97,93 +89,146 @@ class TankDrivebase (Drivebase):
         self.armMotor.spin_to_position(position, DEGREES, 100, RPM, False)
 
     def driveLab21(self):
-        wait(2000)
-        #drive until the first wall
+        # drive until the first wall
         self.desiredDistance = 8.0
         while not self.hitWall():
             self.wallFollowInches(11.0)
-        
-        #turn left 90 degrees
-        while self.motorLeft.position(self.rotationUnits) < 90:
-            self.drive(24,30)
+            wait(20)
 
-        #drive until the second wall
+        self.motorLeft.stop()
+        self.motorRight.stop()
+        
+        self.motorLeft.reset_position()
+        #turn left 90 degrees
+        while abs(self.motorLeft.position(self.rotationUnits)) < 90*10.75:
+            self.drive(24,200)
+        
+        self.motorLeft.stop()
+        self.motorRight.stop()
+        
+        self.desiredDistance = 43.15
+        # #drive until the second wall
         while not self.hitWall():
             self.wallFollowInches(11.0)
+            wait(20)
 
-        #back up a certain distance unless the front range finder can see far enough, if so then change 8 to the number
-        while self.motorLeft.position(self.rotationUnits) < 20:
-            self.drive(-24,0)
+        self.motorLeft.stop()
+        self.motorRight.stop()
 
+        self.motorLeft.reset_position()
         #turn left 90 degrees
-        while self.motorLeft.position(self.rotationUnits) < 90:
-            self.drive(24,30)
+        while self.motorLeft.position(self.rotationUnits) < 90*10.75:
+            self.drive(24,200)
 
+        self.motorLeft.stop()
+        self.motorRight.stop()
+
+        self.motorLeft.reset_position()
         #drive forward
         while self.motorLeft.position(self.rotationUnits) < 20:
-            self.drive(24,0)
+            self.drive(200,0)
+        # cant probably use the front sensor to drive until a specific distance
 
     def driveLab22(self):
-        wait(2000)
+        self.desiredDistance = 8
         #drive until first wall
         while not self.hitWall():
             self.wallFollowInches(11.0)
+            wait(20)
         
+        self.motorLeft.stop()
+        self.motorRight.stop()
+
         #turn left 90 degrees
-        while self.inertial.heading() < 90:
+        while self.inertial.heading() < 90*10.75:
             self.drive(24,30)
         self.inertial.set_heading(0)
 
+        self.motorLeft.stop()
+        self.motorRight.stop()
+
+        self.desiredDistance = 43.15
         #drive until the second wall
         while not self.hitWall():
             self.wallFollowInches(11.0)
+            wait(20)
 
-        #back up a certain distance unless the front range finder can see far enough, if so then change 8 to the number
-        while self.motorLeft.position(self.rotationUnits) < 20:
-            self.drive(-24,0)
+        self.motorLeft.stop()
+        self.motorRight.stop()
 
         #turn left 90 degrees
-        while self.inertial.heading() < 90:
+        while self.inertial.heading() < 90*10.75:
             self.drive(24,30)
         self.inertial.set_heading(0)
+
+        self.motorLeft.stop()
+        self.motorRight.stop()
 
         #drive forward
         while self.motorLeft.position(self.rotationUnits) < 20:
             self.drive(24,0)
 
     def driveLab23(self):
-        wait(2000)
+        self.desiredDistance = 8
         #use the line sensors to follow the line until the first wall
+        #should turn more the longer it is off the line
+        leftTimeOffLine = 1
+        rightTimeOffLine = 1
         while not self.hitWall():
             if (not self.onLine(self.leftLineSensor)):
-                self.drive(24, -20)
+                self.drive(24, -20*leftTimeOffLine)
+                leftTimeOffLine += 1
+                rightTimeOffLine = 1
             elif (not self.onLine(self.rightLineSensor)):
-                self.drive(24, 20)
+                self.drive(24, 20*rightTimeOffLine)
+                leftTimeOffLine = 1
+                rightTimeOffLine += 1
             else:
                 self.drive(24, 0)
+                leftTimeOffLine = 1
+                rightTimeOffLine = 1
+            wait(20)
 
-        #turn left 90 degrees
-        while self.inertial.heading() < 90:
-            self.drive(24,30)
-        self.inertial.set_heading(0)
-
-        #drive until the second wall
-        while not self.hitWall():
-            if (not self.onLine(self.leftLineSensor)):
-                self.drive(24, -20)
-            elif (not self.onLine(self.rightLineSensor)):
-                self.drive(24, 20)
-            else:
-                self.drive(24, 0)
+        self.motorLeft.stop()
+        self.motorRight.stop()
         
-        #back up a certain distance unless the front range finder can see far enough, if so then change 8 to the number
-        while self.motorLeft.position(self.rotationUnits) < 20:
-            self.drive(-24,0)
+        #turn left 90 degrees
+        while self.inertial.heading() < 90:
+            self.drive(24,30)
+        self.inertial.set_heading(0)
+
+        self.motorLeft.stop()
+        self.motorRight.stop()
+
+        self.desiredDistance = 43.15
+        #drive until the second wall
+        leftTimeOffLine = 1
+        rightTimeOffLine = 1
+        while not self.hitWall():
+            if (not self.onLine(self.leftLineSensor)):
+                self.drive(24, -20*leftTimeOffLine)
+                leftTimeOffLine += 1
+                rightTimeOffLine = 1
+            elif (not self.onLine(self.rightLineSensor)):
+                self.drive(24, 20*rightTimeOffLine)
+                leftTimeOffLine = 1
+                rightTimeOffLine += 1
+            else:
+                self.drive(24, 0)
+                leftTimeOffLine = 1
+                rightTimeOffLine = 1
+            wait(20)
+
+        self.motorLeft.stop()
+        self.motorRight.stop()
 
         #turn left 90 degrees
         while self.inertial.heading() < 90:
             self.drive(24,30)
         self.inertial.set_heading(0)
+
+        self.motorLeft.stop()
+        self.motorRight.stop()
 
         #drive forward
         while self.motorLeft.position(self.rotationUnits) < 20:

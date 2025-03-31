@@ -13,6 +13,7 @@ from vex import *
 
 from Subsystems.Drivebase.Tank.tankDrivebase import TankDrivebase
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
+from robotConfig import RobotConfig
 
 #Constants
 wheelDiameter = 4.0
@@ -42,28 +43,35 @@ rangeFinderRight = Sonar(brain.three_wire_port.g)
 lineSensorLeft = Line(brain.three_wire_port.c)
 lineSensorRight = Line(brain.three_wire_port.d)
 inertial = Inertial(Ports.PORT3)
-inertial.calibrate()
 bumpSwitch = Bumper(brain.three_wire_port.a)
 
+inertial.calibrate()
+wait(2000)
+
+
 # Drivebase Testing
-sensorList = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch]
-drivebase = TankDrivebase(left_motor, right_motor, arm_motor, sensorList, wheelDiameter, gear_ratio, wheel_base, kP=0.5)
+peripherals = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch, arm_motor]
+robotConfig = RobotConfig(wheelDiameter, gear_ratio, track_width, peripherals)
+drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=20)
 
 def printSensors():
     while True:
+        #debugging
         brain.screen.print_at("Front Range Finder: ", rangeFinderFront.distance(INCHES),x=0,y=20)
         brain.screen.print_at("Right Range Finder: ", rangeFinderRight.distance(INCHES),x=0,y=40)
         brain.screen.print_at("Left Line Sensor: ", lineSensorLeft.reflectivity(),x=0,y=60)
         brain.screen.print_at("Right Line Sensor: ", lineSensorRight.reflectivity(),x=0,y=80)
         brain.screen.print_at("Inertial: ", inertial.heading(),x=0,y=100)
-        brain.screen.print_at("direction: ", 0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=120)
+        brain.screen.print_at("position: ", left_motor.position(),x=0,y=120)
         brain.screen.print_at("speed1: ", 100+0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=140)
         brain.screen.print_at("speed2: ", 100-0.5*(rangeFinderRight.distance(INCHES)-8),x=0,y=160)
-        brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=180)
-        brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=200)
-        brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=220)
+        brain.screen.print_at("actual velocity1: ", left_motor.velocity(),x=0,y=180)
+        brain.screen.print_at("actual velocity2: ", right_motor.velocity(),x=0,y=200)
+        #lab 2.4
+        # brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=180)
+        # brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=200)
+        # brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=220)
         brain.screen.render()
-
 
 sensorsThread = Thread(printSensors)
 drivebase.driveLab21()
