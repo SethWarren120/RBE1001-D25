@@ -176,24 +176,26 @@ class TankDrivebase ():
     def driveLab21(self):
         self.desiredDistance = 8.0
         while not self.hitWall():
-            self.wallFollowInches(11.0)
+            self.wallFollowInches(5.0)
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
+        self.motorRight.reset_position()
         self.motorLeft.reset_position()
-        while abs(self.motorLeft.position(self.rotationUnits)) < 90*10.75:
+        while abs(self.motorLeft.position(self.rotationUnits))/5 < (self.wheelBase+0.8)/4 * 90 + 5:
             self.drive(0,200)
         self.motorLeft.stop()
         self.motorRight.stop()
         wait(20)
         self.desiredDistance = 43.15
         while not self.hitWall():
-            self.wallFollowInches(11.0)
+            self.wallFollowInches(5.0)
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
+        self.motorRight.reset_position()
         self.motorLeft.reset_position()
-        while self.motorLeft.position(self.rotationUnits) < 90*10.75:
+        while abs(self.motorLeft.position(self.rotationUnits))/5 < (self.wheelBase+0.8)/4 * 90 + 5:
             self.drive(0,200)
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -204,7 +206,7 @@ class TankDrivebase ():
     def driveLab22(self):
         self.desiredDistance = 8
         while not self.hitWall():
-            self.wallFollowInches(11.0)
+            self.wallFollowInches(5.0)
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -215,7 +217,7 @@ class TankDrivebase ():
         self.motorRight.stop()
         self.desiredDistance = 43.15
         while not self.hitWall():
-            self.wallFollowInches(11.0)
+            self.wallFollowInches(5.0)
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -340,7 +342,7 @@ inertial.calibrate()
 wait(2000)
 peripherals = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch, arm_motor]
 robotConfig = RobotConfig(wheelDiameter, gear_ratio, track_width, peripherals)
-drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=20)
+drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=9)
 def printSensors():
     while True:
         brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=20)
