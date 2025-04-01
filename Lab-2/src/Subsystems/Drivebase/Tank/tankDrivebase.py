@@ -18,6 +18,7 @@ class TankDrivebase ():
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.kP = kP
+        self.BestValue = 0
 
         self.rangeFinderRightSide = robotConfig.getRightRangeFinder()
         self.rangeFinderFront = robotConfig.getFrontRangeFinder()
@@ -108,10 +109,23 @@ class TankDrivebase ():
         
         wait(20)
 
-        self.desiredDistance = 43.15
-        # #drive until the second wall
-        while not self.hitWall():
-            self.wallFollowInches(5.0)
+        self.desiredDistance = 37
+        sensorValues = []
+        sensorValuesSorted = []
+        escapeLoop = True
+        while (escapeLoop):
+            sensorValues.append(self.rangeFinderFront.distance(INCHES))
+            if (len(sensorValues) > 10):
+                sensorValues.pop(0)
+
+            sensorValuesSorted = sorted(sensorValues)
+
+            if (len(sensorValues) > 0):
+                self.BestValue = sensorValuesSorted[math.floor(len(sensorValuesSorted)/2)]
+                if (self.BestValue < self.desiredDistance):
+                    escapeLoop = False
+
+            self.wallFollowInches(7.0)
             wait(20)
 
         self.motorLeft.stop()
@@ -130,9 +144,11 @@ class TankDrivebase ():
 
         self.motorLeft.reset_position()
         #drive forward
-        while self.motorLeft.position(self.rotationUnits) < 20:
+        while self.motorLeft.position(self.rotationUnits)/5 < 700:
             self.drive(200,0)
-        # cant probably use the front sensor to drive until a specific distance
+
+        self.motorLeft.stop()
+        self.motorRight.stop()
 
     def driveLab22(self):
         self.desiredDistance = 8
@@ -239,6 +255,8 @@ class TankDrivebase ():
         while self.motorLeft.position(self.rotationUnits) < 20:
             self.drive(200,0)
 
+    def getBestValue(self):
+        return self.BestValue
     def lab24(self):
         while True:
             if self.armToggled:

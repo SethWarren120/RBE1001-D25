@@ -124,6 +124,7 @@ class TankDrivebase ():
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.kP = kP
+        self.BestValue = 0
         self.rangeFinderRightSide = robotConfig.getRightRangeFinder()
         self.rangeFinderFront = robotConfig.getFrontRangeFinder()
         self.inertial = robotConfig.getInertialSensor()
@@ -187,9 +188,20 @@ class TankDrivebase ():
         self.motorLeft.stop()
         self.motorRight.stop()
         wait(20)
-        self.desiredDistance = 43.15
-        while not self.hitWall():
-            self.wallFollowInches(5.0)
+        self.desiredDistance = 37
+        sensorValues = []
+        sensorValuesSorted = []
+        escapeLoop = True
+        while (escapeLoop):
+            sensorValues.append(self.rangeFinderFront.distance(INCHES))
+            if (len(sensorValues) > 10):
+                sensorValues.pop(0)
+            sensorValuesSorted = sorted(sensorValues)
+            if (len(sensorValues) > 0):
+                self.BestValue = sensorValuesSorted[math.floor(len(sensorValuesSorted)/2)]
+                if (self.BestValue < self.desiredDistance):
+                    escapeLoop = False
+            self.wallFollowInches(7.0)
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
@@ -201,8 +213,10 @@ class TankDrivebase ():
         self.motorRight.stop()
         wait(20)
         self.motorLeft.reset_position()
-        while self.motorLeft.position(self.rotationUnits) < 20:
+        while self.motorLeft.position(self.rotationUnits)/5 < 700:
             self.drive(200,0)
+        self.motorLeft.stop()
+        self.motorRight.stop()
     def driveLab22(self):
         self.desiredDistance = 8
         while not self.hitWall():
@@ -279,6 +293,8 @@ class TankDrivebase ():
         self.motorRight.stop()
         while self.motorLeft.position(self.rotationUnits) < 20:
             self.drive(200,0)
+    def getBestValue(self):
+        return self.BestValue
     def lab24(self):
         while True:
             if self.armToggled:
@@ -342,12 +358,13 @@ inertial.calibrate()
 wait(2000)
 peripherals = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch, arm_motor]
 robotConfig = RobotConfig(wheelDiameter, gear_ratio, track_width, peripherals)
-drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=9)
+drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=20)
 def printSensors():
     while True:
         brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=20)
         brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=40)
         brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=60)
+        brain.screen.print_at("best value", drivebase.BestValue,x=0,y=80)
         brain.screen.render()
 sensorsThread = Thread(printSensors)
 drivebase.driveLab21()

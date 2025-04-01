@@ -52,7 +52,7 @@ wait(2000)
 # Drivebase Testing
 peripherals = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch, arm_motor]
 robotConfig = RobotConfig(wheelDiameter, gear_ratio, track_width, peripherals)
-drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=9)
+drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=20)
 
 def printSensors():
     while True:
@@ -60,6 +60,7 @@ def printSensors():
         brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=20)
         brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=40)
         brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=60)
+        brain.screen.print_at("best value", drivebase.BestValue,x=0,y=80)
         brain.screen.render()
 
 sensorsThread = Thread(printSensors)
