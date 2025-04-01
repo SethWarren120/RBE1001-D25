@@ -123,7 +123,7 @@ class TankDrivebase ():
         wait(20)
         
         #drive backwards
-        while self.motorLeft.position(self.rotationUnits)/5 < 800:
+        while abs(self.motorLeft.position(self.rotationUnits)/5) < 880:
             self.drive(-200,0)
         
         self.motorLeft.stop()
@@ -142,7 +142,7 @@ class TankDrivebase ():
 
         self.motorLeft.reset_position()
         #drive forward
-        while self.motorLeft.position(self.rotationUnits)/5 < 700:
+        while self.motorLeft.position(self.rotationUnits)/5 < 550:
             self.drive(200,0)
 
         self.motorLeft.stop()
