@@ -109,25 +109,23 @@ class TankDrivebase ():
         
         wait(20)
 
-        self.desiredDistance = 37
-        sensorValues = []
-        sensorValuesSorted = []
-        escapeLoop = True
-        while (escapeLoop):
-            sensorValues.append(self.rangeFinderFront.distance(INCHES))
-            if (len(sensorValues) > 10):
-                sensorValues.pop(0)
-
-            sensorValuesSorted = sorted(sensorValues)
-
-            if (len(sensorValues) > 0):
-                self.BestValue = sensorValuesSorted[math.floor(len(sensorValuesSorted)/2)]
-                if (self.BestValue < self.desiredDistance):
-                    escapeLoop = False
-
+        self.desiredDistance = 10
+        while not self.hitWall():
             self.wallFollowInches(7.0)
             wait(20)
+        
+        self.motorLeft.stop()
+        self.motorRight.stop()
 
+        self.motorRight.reset_position()
+        self.motorLeft.reset_position()
+
+        wait(20)
+        
+        #drive backwards
+        while self.motorLeft.position(self.rotationUnits)/5 < 800:
+            self.drive(-200,0)
+        
         self.motorLeft.stop()
         self.motorRight.stop()
 

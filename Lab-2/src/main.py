@@ -52,7 +52,7 @@ wait(2000)
 # Drivebase Testing
 peripherals = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch, arm_motor]
 robotConfig = RobotConfig(wheelDiameter, gear_ratio, track_width, peripherals)
-drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=20)
+drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=10)
 
 def printSensors():
     while True:
