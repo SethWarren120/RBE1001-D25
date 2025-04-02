@@ -88,3 +88,28 @@ class MecanumDrivebase ():
         self.x += deltaX
         self.y += deltaY
         self.heading = self.gyro.heading(DEGREES)
+
+    def driveToPose(self, x, y, heading, tolerance=0.5):
+        
+        while True:
+            deltaX = x - self.x
+            deltaY = y - self.y
+            distanceError = math.sqrt(deltaX**2 + deltaY**2)
+            headingError = heading - self.heading
+
+            # Normalize heading error to the range [-180, 180]
+            headingError = (headingError + 180) % 360 - 180
+
+            # Check if the robot is within the tolerances
+            if distanceError <= tolerance and abs(headingError) <= tolerance:
+                break
+
+            # Calculate the desired velocities
+            angleToTarget = math.atan2(deltaY, deltaX)  # Angle to the target in radians
+            angleError = angleToTarget - math.radians(self.heading)  # Adjust for current heading
+            xVel = 200 * math.cos(angleError) * min(1, distanceError / 10)  # Scale speed by distance
+            yVel = 200 * math.sin(angleError) * min(1, distanceError / 10)  # Scale speed by distance
+            rotVel = 200 * 0.5 * (headingError / 180)  # Scale rotational speed by heading error
+
+            # Drive the robot
+            self.drive(xVel, yVel, rotVel)
