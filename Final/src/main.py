@@ -36,3 +36,10 @@ drivePID = [1,0,0]
 turnPID = [1,0,0]
 
 drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, drivePID, turnPID, wheelDiameter, gear_ratio, wheel_base)
+
+controller = Controller()
+
+controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
+controller.buttonB.pressed(lambda: drivebase.driveToPose(0, 0, 90))
+
+drivebase.drive(controller.axis1, controller.axis2, controller.axis4)

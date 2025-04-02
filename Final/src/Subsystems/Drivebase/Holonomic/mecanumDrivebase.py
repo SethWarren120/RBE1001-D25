@@ -93,6 +93,8 @@ class MecanumDrivebase ():
         self.heading = self.gyro.heading(DEGREES)
 
     def driveToPose(self, x, y, heading, tolerance=0.5):
+        self.driveDuration = 0
+        
         prevDistanceError = 0
         prevHeadingError = 0
         integralDistanceError = 0
