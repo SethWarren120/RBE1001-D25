@@ -32,6 +32,7 @@ br_motor = Motor(Ports.PORT10, 18_1, False)
 
 inertial = Inertial(Ports.PORT3)
 
-# drivebase = TankDrivebase(left_motor, right_motor, wheelDiameter, gear_ratio, wheel_base, 
-                        #   DrivebaseMotorCorrectionProfile(22.5 * 5, [0, 0], 5))
-drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, wheelDiameter, gear_ratio, wheel_base)
+drivePID = [1,0,0]
+turnPID = [1,0,0]
+
+drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, drivePID, turnPID, wheelDiameter, gear_ratio, wheel_base)

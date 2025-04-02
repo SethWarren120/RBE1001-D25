@@ -11,7 +11,7 @@ class MecanumDrivebase ():
     wheelBase = 11
     circumference = math.pi * diameter
     
-    def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, wheelDiameter, gearRatio, drivebaseWidth,
+    def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, drivePID, turnPID, wheelDiameter, gearRatio, drivebaseWidth,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorFrontLeft = _motorFrontLeft
         self.motorFrontRight = _motorFrontRight
@@ -31,6 +31,9 @@ class MecanumDrivebase ():
         self.x = 0
         self.y = 0
         self.heading = 0
+
+        self.drivePID = drivePID
+        self.turnPID = turnPID
 
         self.driveDuration = -1
 
@@ -90,8 +93,13 @@ class MecanumDrivebase ():
         self.heading = self.gyro.heading(DEGREES)
 
     def driveToPose(self, x, y, heading, tolerance=0.5):
-        
+        prevDistanceError = 0
+        prevHeadingError = 0
+        integralDistanceError = 0
+        integralHeadingError = 0
+
         while True:
+            # Calculate the error in position and heading
             deltaX = x - self.x
             deltaY = y - self.y
             distanceError = math.sqrt(deltaX**2 + deltaY**2)
@@ -104,12 +112,42 @@ class MecanumDrivebase ():
             if distanceError <= tolerance and abs(headingError) <= tolerance:
                 break
 
+            # PID for position
+            integralDistanceError += distanceError
+            derivativeDistanceError = distanceError - prevDistanceError
+            positionOutput = (
+                self.drivePID[0] * distanceError +
+                self.drivePID[1] * integralDistanceError +
+                self.drivePID[2] * derivativeDistanceError
+            )
+            prevDistanceError = distanceError
+
+            # PID for heading
+            integralHeadingError += headingError
+            derivativeHeadingError = headingError - prevHeadingError
+            headingOutput = (
+                self.turnPID[0] * headingError +
+                self.turnPID[1] * integralHeadingError +
+                self.turnPID[2] * derivativeHeadingError
+            )
+            prevHeadingError = headingError
+
             # Calculate the desired velocities
             angleToTarget = math.atan2(deltaY, deltaX)  # Angle to the target in radians
-            angleError = angleToTarget - math.radians(self.heading)  # Adjust for current heading
-            xVel = 200 * math.cos(angleError) * min(1, distanceError / 10)  # Scale speed by distance
-            yVel = 200 * math.sin(angleError) * min(1, distanceError / 10)  # Scale speed by distance
-            rotVel = 200 * 0.5 * (headingError / 180)  # Scale rotational speed by heading error
+            xVel = positionOutput * math.cos(angleToTarget)  # Scale speed by angle
+            yVel = positionOutput * math.sin(angleToTarget)  # Scale speed by angle
+            rotVel = headingOutput  # Use heading PID output for rotation
+
+            # Limit the velocities to the maximum speed
+            xVel = max(-200, min(200, xVel))
+            yVel = max(-200, min(200, yVel))
+            rotVel = max(-200, min(200, rotVel))
 
             # Drive the robot
             self.drive(xVel, yVel, rotVel)
+
+            # Update odometry
+            self.updateOdometry()
+
+        # Stop the robot once the target pose is reached
+        self.drive(0, 0, 0)
