@@ -42,4 +42,4 @@ controller = Controller()
 controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
 controller.buttonB.pressed(lambda: drivebase.driveToPose(0, 0, 90))
 
-drivebase.drive(controller.axis1, controller.axis2, controller.axis4)
+drivebase.drive(controller.axis3, controller.axis4, controller.axis2)
