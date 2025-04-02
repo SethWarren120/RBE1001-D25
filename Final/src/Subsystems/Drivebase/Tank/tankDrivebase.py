@@ -1,10 +1,9 @@
 # Library imports
 from vex import *
 #from util import *
-from Subsystems.Drivebase.drivebase import Drivebase
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
 
-class TankDrivebase (Drivebase):
+class TankDrivebase ():
 
     diameter = 4
     gearing = 5 / 1
