@@ -253,14 +253,29 @@ class MecanumDrivebase ():
             if not isDuplicate:
                 uniqueLocations.append(fruit)
         self.objectLocations = uniqueLocations
+class Arm ():
+    def __init__(self, motor):
+        self.motor = motor
+class Intake ():
+    def __init__(self, motor):
+        self.motor = motor
+class Forks ():
+    def __init__(self, motor):
+        self.motor = motor
 brain=Brain()
 fl_motor = Motor(Ports.PORT1, 18_1, True)
 fr_motor = Motor(Ports.PORT9, 18_1, False)
 bl_motor = Motor(Ports.PORT2, 18_1, True)
 br_motor = Motor(Ports.PORT10, 18_1, False)
+arm_motor = Motor(Ports.PORT11, 18_1, False)
+fork_motor = Motor(Ports.PORT8, 18_1, False)
+intake_motor = Motor(Ports.PORT5, 18_1, False)
 inertial = Inertial(Ports.PORT3)
 camera = Vision(Ports.PORT4, 50)
 drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
+intake = Intake(intake_motor)
+forks = Forks(fork_motor)
+arm = Arm(arm_motor)
 controller = Controller()
 controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
 controller.buttonB.pressed(lambda: drivebase.driveToPose(0, 0, 90))
