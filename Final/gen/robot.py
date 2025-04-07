@@ -142,7 +142,8 @@ class MecanumDrivebase ():
         self.camera = _camera
         self.diameter = wheelDiameter
         self.gearing = gear_ratio
-        self.wheelBase = track_width
+        self.trackWidth = track_width
+        self.wheelBase = wheel_base
         self.circumference = math.pi * wheelDiameter
         self.dpi = 360.0 / self.circumference
         self.rotationUnits = _rotationUnits
@@ -162,15 +163,16 @@ class MecanumDrivebase ():
         findObjectsThread = Thread(self.calculateObjectPostion)
     def drive(self, xVel, yVel, rotVel, durationSeconds=-1):
         startTime = time.time()  # Record the start time
+        rotationFactor = (self.wheelBase + self.trackWidth) / 2.0
         while durationSeconds == -1 or (time.time() - startTime < durationSeconds):
             heading = self.gyro.heading(DEGREES)
             headingRadians = math.radians(heading)  # Convert heading to radians
             tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
             tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
-            self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel)
-            self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel)
-            self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel)
-            self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel)
+            self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
+            self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
+            self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
+            self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
         self.motorFrontLeft.stop()
         self.motorFrontRight.stop()
         self.motorBackLeft.stop()
@@ -264,34 +266,73 @@ class Arm ():
 class Intake ():
     def __init__(self, intakemotor):
         self.intakemotor = intakemotor
+        self.escapeLoop = False
     def runIntake(self, direction):
         if direction == "forward":
             self.intakemotor.spin(FORWARD)
         else:
             self.intakemotor.spin(REVERSE)
     def stopIntake(self):
+        self.escapeLoop = True
         self.intakemotor.stop()
+        self.escapeLoop = False
+    def intakeUntilCurrent(self):
+        self.runIntake("reverse")
+        while self.intakemotor.current < 0.5 or self.escapeLoop == False:
+            pass
+        self.stopIntake()
 class Forks ():
     def __init__(self, forkmotor, rollerMotor):
         self.forkmotor = forkmotor
         self.rollerMotor = rollerMotor
+        self.gearRatio = forksGearRatio
+        self.rollerDiameter = rollerDiameter
+        self.rollerCircumference = math.pi * rollerDiameter
         self.forksDeployed = False
+        self.basketContains = []
+        self.nextSlot = 0,0
+        self.currentSlot = 0
     def deployForks(self):
-        self.forkmotor.spin_for(FORWARD, 90, DEGREES)
+        self.forkmotor.spin_for(FORWARD, 90*self.gearRatio, DEGREES)
         self.forksDeployed = True
     def retractForks(self):
-        self.forkmotor.spin_for(FORWARD, 0, DEGREES)
+        self.forkmotor.spin_for(FORWARD, -90*self.gearRatio, DEGREES)
         self.forksDeployed = False
-    def rollDirection(self, direction, distance):
-        if direction == "left":
-            self.rollerMotor.spin_for(FORWARD, distance)
-        elif direction == "right":
-            self.rollerMotor.spin_for(REVERSE, distance)
+    def rollBasket(self, distance):
+        self.rollerMotor.spin_for(FORWARD, distance, DEGREES, True)
     def toggleForks(self):
         if self.forksDeployed:
             self.retractForks()
         else:
             self.deployForks()
+    def moveToFirstSlot(self):
+        if self.forksDeployed and self.nextSlot[0] != -1:
+            self.nextSlot = self.getLeftestSlot()
+            distanceToOpenSlotSmall = self.currentSlot * smallFruitWidth
+            distanceToOpenSlotLarge = self.currentSlot * largeFruitWidth
+            slotDifference = self.nextSlot[0] - self.currentSlot
+            smallDriveDegrees = distanceToOpenSlotSmall * slotDifference * self.rollerCircumference * self.gearRatio
+            largeDriveDegrees = distanceToOpenSlotLarge * slotDifference * self.rollerCircumference * self.gearRatio
+            self.rollBasket(smallDriveDegrees)
+            self.addObject(self.nextSlot[0], self.nextSlot[1])
+    def addObject(self, row, column):
+        if len(self.basketContains) < row-1:
+            if (column == 1):
+                self.basketContains.append((1, 0))
+            else:
+                self.basketContains.append((0, 1))
+        else:
+            if (column == 1):
+                self.basketContains[row-1] = (1, 0)
+            else:
+                self.basketContains[row-1] = (0, 1)
+        self.nextSlot = self.getLeftestSlot()
+    def getLeftestSlot(self):
+        for i in range(len(self.basketContains)):
+            for j in range(len(self.basketContains)):
+                if self.basketContains[i][j] == 0:
+                    return i+1,j+1
+        return -1,-1
 brain=Brain()
 fl_motor = Motor(Ports.PORT1, 18_1, True)
 fr_motor = Motor(Ports.PORT9, 18_1, False)

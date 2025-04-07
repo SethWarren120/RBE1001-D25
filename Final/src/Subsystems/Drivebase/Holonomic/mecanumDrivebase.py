@@ -16,7 +16,8 @@ class MecanumDrivebase ():
 
         self.diameter = wheelDiameter
         self.gearing = gear_ratio
-        self.wheelBase = track_width
+        self.trackWidth = track_width
+        self.wheelBase = wheel_base
         self.circumference = math.pi * wheelDiameter
         self.dpi = 360.0 / self.circumference
 
@@ -45,6 +46,8 @@ class MecanumDrivebase ():
     def drive(self, xVel, yVel, rotVel, durationSeconds=-1):
         startTime = time.time()  # Record the start time
 
+        rotationFactor = (self.wheelBase + self.trackWidth) / 2.0
+
         while durationSeconds == -1 or (time.time() - startTime < durationSeconds):
             # Get the current heading from the gyro
             heading = self.gyro.heading(DEGREES)
@@ -55,10 +58,10 @@ class MecanumDrivebase ():
             tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
 
             # Drive the motors with the transformed velocities
-            self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel)
-            self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel)
-            self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel)
-            self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel)
+            self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
+            self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
+            self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
+            self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
 
         # Stop the motors after the loop ends
         self.motorFrontLeft.stop()
