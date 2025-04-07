@@ -1,3 +1,3 @@
 class Arm ():
-    def __init__(self, motor):
-        self.motor = motor
+    def __init__(self, armmotor):
+        self.armmotor = armmotor

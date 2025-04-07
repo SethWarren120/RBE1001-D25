@@ -24,8 +24,9 @@ bl_motor = Motor(Ports.PORT2, 18_1, True)
 br_motor = Motor(Ports.PORT10, 18_1, False)
 
 arm_motor = Motor(Ports.PORT11, 18_1, False)
-fork_motor = Motor(Ports.PORT8, 18_1, False)
 intake_motor = Motor(Ports.PORT5, 18_1, False)
+fork_motor = Motor(Ports.PORT8, 18_1, False)
+roller_motor = Motor(Ports.PORT6, 18_1, False)
 
 inertial = Inertial(Ports.PORT3)
 
@@ -33,7 +34,7 @@ camera = Vision(Ports.PORT4, 50)
 
 drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
 intake = Intake(intake_motor)
-forks = Forks(fork_motor)
+forks = Forks(fork_motor, roller_motor)
 arm = Arm(arm_motor)
 
 controller = Controller()

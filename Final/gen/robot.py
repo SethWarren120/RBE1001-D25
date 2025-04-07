@@ -125,6 +125,11 @@ fruitHeight2 = 10 #inches
 smallFruitWidth = 2.5 #inches
 largeFruitWidth = 5.5 #inches
 objectThreashold = 5
+rollerDiameter = 2.5 #inches
+rollerGearRatio = 5
+forksGearRatio = 5
+armLength = 10 #inches
+armGearRatio = 5
 import math
 class MecanumDrivebase ():
     def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, _camera,
@@ -254,27 +259,53 @@ class MecanumDrivebase ():
                 uniqueLocations.append(fruit)
         self.objectLocations = uniqueLocations
 class Arm ():
-    def __init__(self, motor):
-        self.motor = motor
+    def __init__(self, armmotor):
+        self.armmotor = armmotor
 class Intake ():
-    def __init__(self, motor):
-        self.motor = motor
+    def __init__(self, intakemotor):
+        self.intakemotor = intakemotor
+    def runIntake(self, direction):
+        if direction == "forward":
+            self.intakemotor.spin(FORWARD)
+        else:
+            self.intakemotor.spin(REVERSE)
+    def stopIntake(self):
+        self.intakemotor.stop()
 class Forks ():
-    def __init__(self, motor):
-        self.motor = motor
+    def __init__(self, forkmotor, rollerMotor):
+        self.forkmotor = forkmotor
+        self.rollerMotor = rollerMotor
+        self.forksDeployed = False
+    def deployForks(self):
+        self.forkmotor.spin_for(FORWARD, 90, DEGREES)
+        self.forksDeployed = True
+    def retractForks(self):
+        self.forkmotor.spin_for(FORWARD, 0, DEGREES)
+        self.forksDeployed = False
+    def rollDirection(self, direction, distance):
+        if direction == "left":
+            self.rollerMotor.spin_for(FORWARD, distance)
+        elif direction == "right":
+            self.rollerMotor.spin_for(REVERSE, distance)
+    def toggleForks(self):
+        if self.forksDeployed:
+            self.retractForks()
+        else:
+            self.deployForks()
 brain=Brain()
 fl_motor = Motor(Ports.PORT1, 18_1, True)
 fr_motor = Motor(Ports.PORT9, 18_1, False)
 bl_motor = Motor(Ports.PORT2, 18_1, True)
 br_motor = Motor(Ports.PORT10, 18_1, False)
 arm_motor = Motor(Ports.PORT11, 18_1, False)
-fork_motor = Motor(Ports.PORT8, 18_1, False)
 intake_motor = Motor(Ports.PORT5, 18_1, False)
+fork_motor = Motor(Ports.PORT8, 18_1, False)
+roller_motor = Motor(Ports.PORT6, 18_1, False)
 inertial = Inertial(Ports.PORT3)
 camera = Vision(Ports.PORT4, 50)
 drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
 intake = Intake(intake_motor)
-forks = Forks(fork_motor)
+forks = Forks(fork_motor, roller_motor)
 arm = Arm(arm_motor)
 controller = Controller()
 controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
