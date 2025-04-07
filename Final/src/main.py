@@ -14,15 +14,6 @@ from vex import *
 from Subsystems.Drivebase.Holonomic.mecanumDrivebase import MecanumDrivebase
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
 
-#Constants
-wheelDiameter = 4.0
-wheel_travel = math.pi*wheelDiameter
-track_width = 11
-wheel_base = 11
-gear_ratio = 5
-wheelCircumference = 3.14 * wheelDiameter 
-degreesPerInch = 360.0 / wheelCircumference
-
 brain=Brain()
 
 fl_motor = Motor(Ports.PORT1, 18_1, True)
@@ -32,10 +23,9 @@ br_motor = Motor(Ports.PORT10, 18_1, False)
 
 inertial = Inertial(Ports.PORT3)
 
-drivePID = [1,0,0]
-turnPID = [1,0,0]
+camera = Vision(Ports.PORT4, 50)
 
-drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, drivePID, turnPID, wheelDiameter, gear_ratio, wheel_base)
+drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
 
 controller = Controller()
 

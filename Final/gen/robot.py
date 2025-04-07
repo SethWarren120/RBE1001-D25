@@ -1,9 +1,8 @@
 # Automatically generated deployment script
 # Edits to this file will be overwritten
 from vex import *
-class Drivebase:
-    pass
 class DrivebaseMotorCorrector:
+    print("hello :3")
     motors = []
     offset = 1
     offsetList = []
@@ -111,47 +110,7 @@ class DrivebaseMotorCorrectionProfile:
         print(config.startingOffsets)
         config.configured = False
         return config
-class TankDrivebase (Drivebase):
-    diameter = 4
-    gearing = 5 / 1
-    wheelBase = 11
-    circumference = math.pi * diameter
-    def __init__(self, _motorLeft, _motorRight, wheelDiameter, gearRatio, drivebaseWidth,
-                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
-        self.motorLeft = _motorLeft
-        self.motorRight = _motorRight
-        self.diameter = wheelDiameter
-        self.gearing = gearRatio
-        self.wheelBase = drivebaseWidth
-        self.circumference = math.pi * wheelDiameter
-        self.dpi = 360.0 / self.circumference
-        self.rotationUnits = _rotationUnits
-        self.speedUnits = _speedUnits
-        if motorCorrectionConfig == None:
-            motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
-        else:
-            motorCorrectionConfig.units = _rotationUnits
-        self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
-    def moveLen(self, len, speed):
-        deg = 360 * ((len / self.circumference) * self.gearing)
-        self.motorCorrector.setPassiveMode(False)
-        print("Helo")
-        self.motorCorrector.correctMotors([deg, deg])
-        self.motorLeft.spin_for(FORWARD, deg, self.rotationUnits, speed, self.speedUnits, False)
-        self.motorRight.spin_for(FORWARD, deg, self.rotationUnits, speed, self.speedUnits, True)
-    def turnDeg(self, rotation, speed, pivotOffset = 0.0):
-        lenLeft = -(2 * math.pi * ((self.wheelBase / 2) + pivotOffset)) * (-rotation / 360)
-        lenRight = (2 * math.pi * ((self.wheelBase / 2) - pivotOffset)) * (-rotation / 360)
-        degLeft = 360 * ((lenLeft / self.circumference) * self.gearing)
-        degRight = 360 * ((lenRight / self.circumference) * self.gearing)
-        self.motorCorrector.setPassiveMode(False)
-        self.motorCorrector.correctMotors([degLeft, degRight])
-        if (degLeft > degRight):
-            self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed, self.speedUnits, False)
-            self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed * (degRight / degLeft), self.speedUnits, True)
-        else:
-            self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
-            self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
+import math
 wheelDiameter = 4.0
 wheel_travel = math.pi*wheelDiameter
 track_width = 11
@@ -159,14 +118,150 @@ wheel_base = 11
 gear_ratio = 5
 wheelCircumference = 3.14 * wheelDiameter 
 degreesPerInch = 360.0 / wheelCircumference
+drivePID = [1,0,0]
+turnPID = [1,0,0]
+fruitHeight1 = 5 #inches
+fruitHeight2 = 10 #inches
+smallFruitWidth = 2.5 #inches
+largeFruitWidth = 5.5 #inches
+objectThreashold = 5
+import math
+class MecanumDrivebase ():
+    def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, _camera,
+                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
+        self.motorFrontLeft = _motorFrontLeft
+        self.motorFrontRight = _motorFrontRight
+        self.motorBackLeft = _motorBackLeft
+        self.motorBackRight = _motorBackRight
+        self.gyro = _gyro
+        self.camera = _camera
+        self.diameter = wheelDiameter
+        self.gearing = gear_ratio
+        self.wheelBase = track_width
+        self.circumference = math.pi * wheelDiameter
+        self.dpi = 360.0 / self.circumference
+        self.rotationUnits = _rotationUnits
+        self.speedUnits = _speedUnits
+        self.x = 0
+        self.y = 0
+        self.heading = 0
+        self.drivePID = drivePID
+        self.turnPID = turnPID
+        self.driveDuration = -1
+        self.objectLocations = []
+        if motorCorrectionConfig == None:
+            motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
+        else:
+            motorCorrectionConfig.units = _rotationUnits
+        odometryThread = Thread(self.updateOdometry)
+        findObjectsThread = Thread(self.calculateObjectPostion)
+    def drive(self, xVel, yVel, rotVel, durationSeconds=-1):
+        startTime = time.time()  # Record the start time
+        while durationSeconds == -1 or (time.time() - startTime < durationSeconds):
+            heading = self.gyro.heading(DEGREES)
+            headingRadians = math.radians(heading)  # Convert heading to radians
+            tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
+            tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
+            self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel)
+            self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel)
+            self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel)
+            self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel)
+        self.motorFrontLeft.stop()
+        self.motorFrontRight.stop()
+        self.motorBackLeft.stop()
+        self.motorBackRight.stop()
+    def updateOdometry(self):
+        frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * self.circumference
+        frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * self.circumference
+        backLeftDistance = self.motorBackLeft.position(DEGREES) / 360.0 * self.circumference
+        backRightDistance = self.motorBackRight.position(DEGREES) / 360.0 * self.circumference
+        avgX = (frontLeftDistance - frontRightDistance + backLeftDistance - backRightDistance) / 4.0
+        avgY = (frontLeftDistance + frontRightDistance + backLeftDistance + backRightDistance) / 4.0
+        heading = self.gyro.heading(DEGREES)
+        headingRadians = math.radians(heading)
+        deltaX = avgX * math.cos(headingRadians) - avgY * math.sin(headingRadians)
+        deltaY = avgX * math.sin(headingRadians) + avgY * math.cos(headingRadians)
+        self.x += deltaX
+        self.y += deltaY
+        self.heading = self.gyro.heading(DEGREES)
+    def driveToPose(self, x, y, heading, tolerance=0.5):
+        self.driveDuration = 0
+        prevDistanceError = 0
+        prevHeadingError = 0
+        integralDistanceError = 0
+        integralHeadingError = 0
+        while True:
+            deltaX = x - self.x
+            deltaY = y - self.y
+            distanceError = math.sqrt(deltaX**2 + deltaY**2)
+            headingError = heading - self.heading
+            headingError = (headingError + 180) % 360 - 180
+            if distanceError <= tolerance and abs(headingError) <= tolerance:
+                break
+            integralDistanceError += distanceError
+            derivativeDistanceError = distanceError - prevDistanceError
+            positionOutput = (
+                self.drivePID[0] * distanceError +
+                self.drivePID[1] * integralDistanceError +
+                self.drivePID[2] * derivativeDistanceError
+            )
+            prevDistanceError = distanceError
+            integralHeadingError += headingError
+            derivativeHeadingError = headingError - prevHeadingError
+            headingOutput = (
+                self.turnPID[0] * headingError +
+                self.turnPID[1] * integralHeadingError +
+                self.turnPID[2] * derivativeHeadingError
+            )
+            prevHeadingError = headingError
+            angleToTarget = math.atan2(deltaY, deltaX)  # Angle to the target in radians
+            xVel = positionOutput * math.cos(angleToTarget)  # Scale speed by angle
+            yVel = positionOutput * math.sin(angleToTarget)  # Scale speed by angle
+            rotVel = headingOutput  # Use heading PID output for rotation
+            xVel = max(-200, min(200, xVel))
+            yVel = max(-200, min(200, yVel))
+            rotVel = max(-200, min(200, rotVel))
+            self.drive(xVel, yVel, rotVel)
+            self.updateOdometry()
+        self.drive(0, 0, 0)
+    def calculateObjectPostion(self):
+        self.camera.takeSnapshot()
+        largestObject = self.camera.largest_object
+        if largestObject.exists:
+            if largestObject.width > 0:
+                distanceToSmallFruit = (smallFruitWidth / largestObject.width) * self.camera.focal_length
+                distanceToLargeFruit = (largeFruitWidth / largestObject.width) * self.camera.focal_length
+                angleToFruit = math.radians(largestObject.centerX - (self.camera.width / 2)) * self.camera.field_of_view
+                smallFruitX = self.x + distanceToSmallFruit * math.cos(math.radians(self.heading) + angleToFruit)
+                smallFruitY = self.y + distanceToSmallFruit * math.sin(math.radians(self.heading) + angleToFruit)
+                largeFruitX = self.x + distanceToLargeFruit * math.cos(math.radians(self.heading) + angleToFruit)
+                largeFruitY = self.y + distanceToLargeFruit * math.sin(math.radians(self.heading) + angleToFruit)
+                self.objectLocations.append((("small", smallFruitX, smallFruitY), ("large", largeFruitX, largeFruitY)))
+                self.removeRedundant()
+                print(f"Fruit detected at: X={smallFruitX}, Y={smallFruitY}")
+                print(f"Fruit detected at: X={largeFruitX}, Y={largeFruitY}")
+        wait(20)
+    def removeRedundant(self):
+        uniqueLocations = []
+        for fruit in self.objectLocations:
+            isDuplicate = False
+            for uniqueFruit in uniqueLocations:
+                distance = math.sqrt((fruit[1] - uniqueFruit[1])**2 + (fruit[2] - uniqueFruit[2])**2)
+                if distance < objectThreashold:
+                    isDuplicate = True
+                    break
+            if not isDuplicate:
+                uniqueLocations.append(fruit)
+        self.objectLocations = uniqueLocations
 brain=Brain()
-brain.screen.print("Hello V5")
-left_motor = Motor(Ports.PORT10, 18_1, True)
-right_motor = Motor(Ports.PORT1, 18_1, False)
-left_motor.set_velocity(30, RPM)
-left_motor.reset_position()
-right_motor.set_velocity(30, RPM)
-right_motor.reset_position()
-drivebase = TankDrivebase(left_motor, right_motor, wheelDiameter, gear_ratio, wheel_base)
-drivebase.moveLen(5, 30)
-drivebase.turnDeg(90, 30)
+fl_motor = Motor(Ports.PORT1, 18_1, True)
+fr_motor = Motor(Ports.PORT9, 18_1, False)
+bl_motor = Motor(Ports.PORT2, 18_1, True)
+br_motor = Motor(Ports.PORT10, 18_1, False)
+inertial = Inertial(Ports.PORT3)
+camera = Vision(Ports.PORT4, 50)
+drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
+controller = Controller()
+controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
+controller.buttonB.pressed(lambda: drivebase.driveToPose(0, 0, 90))
+drivebase.drive(controller.axis3, controller.axis4, controller.axis2)
