@@ -27,5 +27,16 @@ rollerGearRatio = 5
 forksGearRatio = 5
 
 #arm constants
-armLength = 10 #inches
+lowFruitHeight = 5 #inches
+lowFruitAngle = 45 #degrees
+highFruitHeight = 10 #inches
+highFruitAngle = 90 #degrees
+
+minArmLength = 0 #inches
+maxArmLength = 20 #inches
+
+minArmAngle = 0 #degrees
+maxArmAngle = 180 #degrees
+
 armGearRatio = 5
+pivotGearRatio = 5
