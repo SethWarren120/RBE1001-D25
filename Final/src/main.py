@@ -39,9 +39,12 @@ intake = Intake(intake_motor)
 forks = Forks(fork_motor, roller_motor)
 arm = Arm(arm_motor, pivot_motor)
 
+setSubsystems(drivebase, arm, intake, forks)
+
 controller = Controller()
 
 controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
 controller.buttonB.pressed(lambda: drivebase.driveToPose(0, 0, 90))
 
-drivebase.drive(controller.axis3, controller.axis4, controller.axis2)
+grabFruit((0, 0), lowFruitHeight)
+# drivebase.drive(controller.axis3, controller.axis4, controller.axis2)

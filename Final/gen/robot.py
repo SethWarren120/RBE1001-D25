@@ -128,8 +128,16 @@ objectThreashold = 5
 rollerDiameter = 2.5 #inches
 rollerGearRatio = 5
 forksGearRatio = 5
-armLength = 10 #inches
+lowFruitHeight = 5 #inches
+lowFruitAngle = 45 #degrees
+highFruitHeight = 10 #inches
+highFruitAngle = 90 #degrees
+minArmLength = 0 #inches
+maxArmLength = 20 #inches
+minArmAngle = 0 #degrees
+maxArmAngle = 180 #degrees
 armGearRatio = 5
+pivotGearRatio = 5
 import math
 class MecanumDrivebase ():
     def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, _camera,
@@ -261,8 +269,32 @@ class MecanumDrivebase ():
                 uniqueLocations.append(fruit)
         self.objectLocations = uniqueLocations
 class Arm ():
-    def __init__(self, armmotor):
+    def __init__(self, armmotor, pivotmotor):
         self.armmotor = armmotor
+        self.pivotmotor = pivotmotor
+        self.armGearRatio = armGearRatio
+        self.pivotGearRatio = pivotGearRatio
+        self.armLength = 0
+        self.armAngle = 0
+    def getLength(self):
+        return self.armLength
+    def setLength(self, length):
+        actualLength = self.clamp(length, minArmLength, maxArmLength)
+        lengthDifference = actualLength - self.armLength
+        self.armmotor.spin_to_position(FORWARD, lengthDifference * self.armGearRatio, DEGREES)
+        self.armLength = self.armmotor.position(DEGREES) / self.armGearRatio
+    def setAngle(self, angle):
+        actualAngle = self.clamp(angle, minArmAngle, maxArmAngle)
+        angleDifference = actualAngle - self.armAngle
+        self.pivotmotor.spin_to_position(FORWARD, angleDifference * self.pivotGearRatio, DEGREES)
+        self.armAngle = self.pivotmotor.position(DEGREES) / self.pivotGearRatio
+    def getAngle(self):
+        return self.armAngle
+    def clamp(self, value, min_value, max_value):
+        return max(min_value, min(value, max_value))
+    def toPosition(self, length, angle):
+        self.setLength(length)
+        self.setAngle(angle)
 class Intake ():
     def __init__(self, intakemotor):
         self.intakemotor = intakemotor
@@ -333,12 +365,36 @@ class Forks ():
                 if self.basketContains[i][j] == 0:
                     return i+1,j+1
         return -1,-1
+def setSubsystems(driveBase, arm, intake, forks):
+    global driveSub, armSub, intakeSub, forksSub
+    driveSub = driveBase
+    armSub = arm
+    intakeSub = intake
+    forksSub = forks
+def grabFruit(fruitPose, height):
+    armSub.toPosition(height, lowFruitAngle)
+    intakeSub.intakeUntilCurrent()
+    armLength = armSub.getHeight()  # Get the current arm length
+    armAngle = math.radians(armSub.getAngle())  # Convert arm angle to radians
+    robotHeading = math.radians(driveSub.heading) # uses the heading in radians
+    offsetX = armLength * math.cos(robotHeading) # Get the x offset of the arm relative to the robot
+    offsetY = armLength * math.sin(robotHeading) # Get the y offset of the arm relative to the robot
+    adjustedX = fruitPose[0] - offsetX
+    adjustedY = fruitPose[1] - offsetY
+    deltaX = fruitPose[0] - driveSub.x  # get the change in x position
+    deltaY = fruitPose[1] - driveSub.y  # get the change in y position
+    targetHeading = math.degrees(math.atan2(deltaY, deltaX))  # find the angle the robot neeeds to turn to face the fruit
+    driveSub.driveToPose(adjustedX, adjustedY, targetHeading)
+def stowArm():
+    armSub.toPosition(minArmLength, minArmAngle)
+    intakeSub.stopIntake()
 brain=Brain()
 fl_motor = Motor(Ports.PORT1, 18_1, True)
 fr_motor = Motor(Ports.PORT9, 18_1, False)
 bl_motor = Motor(Ports.PORT2, 18_1, True)
 br_motor = Motor(Ports.PORT10, 18_1, False)
 arm_motor = Motor(Ports.PORT11, 18_1, False)
+pivot_motor = Motor(Ports.PORT7, 18_1, False)
 intake_motor = Motor(Ports.PORT5, 18_1, False)
 fork_motor = Motor(Ports.PORT8, 18_1, False)
 roller_motor = Motor(Ports.PORT6, 18_1, False)
@@ -347,8 +403,9 @@ camera = Vision(Ports.PORT4, 50)
 drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
 intake = Intake(intake_motor)
 forks = Forks(fork_motor, roller_motor)
-arm = Arm(arm_motor)
+arm = Arm(arm_motor, pivot_motor)
+setSubsystems(drivebase, arm, intake, forks)
 controller = Controller()
 controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
 controller.buttonB.pressed(lambda: drivebase.driveToPose(0, 0, 90))
-drivebase.drive(controller.axis3, controller.axis4, controller.axis2)
+grabFruit((0, 0), lowFruitHeight)

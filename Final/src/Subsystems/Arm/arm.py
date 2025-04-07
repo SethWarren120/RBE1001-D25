@@ -9,18 +9,18 @@ class Arm ():
         self.armGearRatio = armGearRatio
         self.pivotGearRatio = pivotGearRatio
 
-        self.armHeight = 0
+        self.armLength = 0
         self.armAngle = 0
 
-    def getHeight(self):
-        return self.armHeight
+    def getLength(self):
+        return self.armLength
 
-    def setHeight(self, height):
-        actualHeight = self.clamp(height, minArmLength, maxArmLength)
-        heightDifference = actualHeight - self.armHeight
+    def setLength(self, length):
+        actualLength = self.clamp(length, minArmLength, maxArmLength)
+        lengthDifference = actualLength - self.armLength
 
-        self.armmotor.spin_to_position(FORWARD, heightDifference * self.armGearRatio, DEGREES)
-        self.armHeight = self.armmotor.position(DEGREES) / self.armGearRatio
+        self.armmotor.spin_to_position(FORWARD, lengthDifference * self.armGearRatio, DEGREES)
+        self.armLength = self.armmotor.position(DEGREES) / self.armGearRatio
 
     def setAngle(self, angle):
         actualAngle = self.clamp(angle, minArmAngle, maxArmAngle)
@@ -34,3 +34,7 @@ class Arm ():
     
     def clamp(self, value, min_value, max_value):
         return max(min_value, min(value, max_value))
+    
+    def toPosition(self, length, angle):
+        self.setLength(length)
+        self.setAngle(angle)
