@@ -16,8 +16,7 @@ class Arm (Subsystem):
         return self.armLength
 
     def setLength(self, length):
-        actualLength = self.clamp(length, minArmLength, maxArmLength)
-        targetLength = actualLength
+        targetLength = self.clamp(length, minArmLength, maxArmLength)
 
         # PID variables
         kp, ki, kd = armPID
@@ -49,8 +48,7 @@ class Arm (Subsystem):
         self.armLength = self.armmotor.position(DEGREES) / armGearRatio
 
     def setAngle(self, angle):
-        actualAngle = self.clamp(angle, minArmAngle, maxArmAngle)
-        targetAngle = actualAngle
+        targetAngle = self.clamp(angle, minArmAngle, maxArmAngle)
 
         # PID variables
         kp, ki, kd = pivotPID
@@ -79,7 +77,7 @@ class Arm (Subsystem):
 
         # Stop the motor once the target is reached
         self.pivotmotor.stop()
-        self.armAngle = self.pivotmotor.position(DEGREES) / wristGearRatio
+        self.armAngle = self.pivotmotor.position(DEGREES) / pivotGearRatio
     
     def getAngle(self):
         return self.armAngle
@@ -88,8 +86,7 @@ class Arm (Subsystem):
         return self.wristmotor.position(DEGREES) / wristGearRatio
     
     def setWristAngle(self, angle):
-        actualAngle = self.clamp(angle, minWristAngle, maxWristAngle)
-        targetAngle = actualAngle
+        targetAngle = self.clamp(angle, minWristAngle, maxWristAngle)
 
         # PID variables
         kp, ki, kd = wristPID
