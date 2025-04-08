@@ -189,9 +189,6 @@ class MecanumDrivebase (Subsystem):
                 self.objectLocations.append((("small", smallFruitX, smallFruitY), ("large", largeFruitX, largeFruitY)))
                 self.removeRedundant()
 
-                print(f"Fruit detected at: X={smallFruitX}, Y={smallFruitY}")
-                print(f"Fruit detected at: X={largeFruitX}, Y={largeFruitY}")
-
         wait(20)
 
     def removeRedundant(self):

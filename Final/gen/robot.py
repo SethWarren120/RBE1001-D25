@@ -286,8 +286,6 @@ class MecanumDrivebase (Subsystem):
                 largeFruitY = self.y + distanceToLargeFruit * math.sin(math.radians(self.heading) + angleToFruit)
                 self.objectLocations.append((("small", smallFruitX, smallFruitY), ("large", largeFruitX, largeFruitY)))
                 self.removeRedundant()
-                print(f"Fruit detected at: X={smallFruitX}, Y={smallFruitY}")
-                print(f"Fruit detected at: X={largeFruitX}, Y={largeFruitY}")
         wait(20)
     def removeRedundant(self):
         uniqueLocations = []
@@ -374,6 +372,8 @@ class Arm (Subsystem):
         armAngleThead = Thread(lambda: self.setAngle(angle))
         self.setWristAngle(wristAngle)
         self.currentCommand = None
+        armLengthThread.stop()
+        armAngleThead.stop()
     def clamp(self, value, min_value, max_value):
         return max(min_value, min(value, max_value))
 class Intake (Subsystem):
