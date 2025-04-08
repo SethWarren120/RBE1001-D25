@@ -23,12 +23,11 @@ fr_motor = Motor(Ports.PORT9, 18_1, False)
 bl_motor = Motor(Ports.PORT2, 18_1, True)
 br_motor = Motor(Ports.PORT10, 18_1, False)
 
-#need to remove a motor, probably the roller motor
-arm_motor = Motor(Ports.PORT11, 18_1, False)
+arm_motor = Motor(Ports.PORT6, 18_1, False)
+wrist_motor = Motor(Ports.PORT11, 18_1, False)
 pivot_motor = Motor(Ports.PORT7, 18_1, False)
 intake_motor = Motor(Ports.PORT5, 18_1, False)
 fork_motor = Motor(Ports.PORT8, 18_1, False)
-roller_motor = Motor(Ports.PORT6, 18_1, False)
 
 inertial = Inertial(Ports.PORT3)
 
@@ -36,15 +35,19 @@ camera = Vision(Ports.PORT4, 50)
 
 drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
 intake = Intake(intake_motor)
-forks = Forks(fork_motor, roller_motor)
-arm = Arm(arm_motor, pivot_motor)
+forks = Forks(fork_motor)
+arm = Arm(arm_motor, pivot_motor, wrist_motor)
 
 setSubsystems(drivebase, arm, intake, forks)
 
 controller = Controller()
 
-controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
-controller.buttonB.pressed(lambda: drivebase.driveToPose(0, 0, 90))
+drivebase.setDefaultCommand(drivebase.driveCommand(controller.axis3, controller.axis4, controller.axis2))
+arm.setDefaultCommand(arm.toPositionCommand(0, 0, 0))
+intake.setDefaultCommand(intake.stopIntakeCommand())
 
-grabFruit((0, 0), lowFruitHeight)
+controller.buttonA.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 0)))
+controller.buttonB.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 90)))
+
+# grabFruit((0, 0), lowFruitHeight)
 # drivebase.drive(controller.axis3, controller.axis4, controller.axis2)

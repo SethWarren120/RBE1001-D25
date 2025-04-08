@@ -136,12 +136,30 @@ minArmLength = 0 #inches
 maxArmLength = 20 #inches
 minArmAngle = 0 #degrees
 maxArmAngle = 180 #degrees
+minWristAngle = 0 #degrees
+maxWristAngle = 180 #degrees
 armGearRatio = 5
 pivotGearRatio = 5
+wristGearRatio = 5
+class Subsystem():
+    def __init__(self):
+        self.defaultCommand = None
+        self.currentCommand = None
+        self.periodic()
+    def setDefaultCommand(self, command):
+        self.defaultCommand = command
+    def run(self, command):
+        self.currentCommand = command
+        runThread = Thread(lambda: command)
+    def periodic(self):
+        while True:
+            if (self.currentCommand == None):
+                self.run(self.defaultCommand)
+            wait(20)
 import math
-class MecanumDrivebase ():
-    def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, _camera,
-                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
+class MecanumDrivebase (Subsystem):
+    def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, _camera, 
+                 _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorFrontLeft = _motorFrontLeft
         self.motorFrontRight = _motorFrontRight
         self.motorBackLeft = _motorBackLeft
@@ -161,30 +179,20 @@ class MecanumDrivebase ():
         self.heading = 0
         self.drivePID = drivePID
         self.turnPID = turnPID
-        self.driveDuration = -1
         self.objectLocations = []
-        if motorCorrectionConfig == None:
-            motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
-        else:
-            motorCorrectionConfig.units = _rotationUnits
         odometryThread = Thread(self.updateOdometry)
         findObjectsThread = Thread(self.calculateObjectPostion)
-    def drive(self, xVel, yVel, rotVel, durationSeconds=-1):
-        startTime = time.time()  # Record the start time
+    def driveCommand(self, xVel, yVel, rotVel):
         rotationFactor = (self.wheelBase + self.trackWidth) / 2.0
-        while durationSeconds == -1 or (time.time() - startTime < durationSeconds):
-            heading = self.gyro.heading(DEGREES)
-            headingRadians = math.radians(heading)  # Convert heading to radians
-            tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
-            tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
-            self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
-            self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
-            self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
-            self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
-        self.motorFrontLeft.stop()
-        self.motorFrontRight.stop()
-        self.motorBackLeft.stop()
-        self.motorBackRight.stop()
+        heading = self.gyro.heading(DEGREES)
+        headingRadians = math.radians(heading)  # Convert heading to radians
+        tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
+        tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
+        self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
+        self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
+        self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
+        self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
+        self.currentCommand = None
     def updateOdometry(self):
         frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * self.circumference
         frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * self.circumference
@@ -199,7 +207,7 @@ class MecanumDrivebase ():
         self.x += deltaX
         self.y += deltaY
         self.heading = self.gyro.heading(DEGREES)
-    def driveToPose(self, x, y, heading, tolerance=0.5):
+    def driveToPoseCommand(self, x, y, heading, tolerance=0.5):
         self.driveDuration = 0
         prevDistanceError = 0
         prevHeadingError = 0
@@ -236,9 +244,9 @@ class MecanumDrivebase ():
             xVel = max(-200, min(200, xVel))
             yVel = max(-200, min(200, yVel))
             rotVel = max(-200, min(200, rotVel))
-            self.drive(xVel, yVel, rotVel)
+            self.driveCommand(xVel, yVel, rotVel)
             self.updateOdometry()
-        self.drive(0, 0, 0)
+        self.currentCommand = None
     def calculateObjectPostion(self):
         self.camera.takeSnapshot()
         largestObject = self.camera.largest_object
@@ -268,85 +276,81 @@ class MecanumDrivebase ():
             if not isDuplicate:
                 uniqueLocations.append(fruit)
         self.objectLocations = uniqueLocations
-class Arm ():
-    def __init__(self, armmotor, pivotmotor):
+class Arm (Subsystem):
+    def __init__(self, armmotor, pivotmotor, wristmotor):
         self.armmotor = armmotor
         self.pivotmotor = pivotmotor
-        self.armGearRatio = armGearRatio
-        self.pivotGearRatio = pivotGearRatio
+        self.wristmotor = wristmotor
         self.armLength = 0
         self.armAngle = 0
+        self.wristAngle = 0
     def getLength(self):
         return self.armLength
     def setLength(self, length):
         actualLength = self.clamp(length, minArmLength, maxArmLength)
         lengthDifference = actualLength - self.armLength
-        self.armmotor.spin_to_position(FORWARD, lengthDifference * self.armGearRatio, DEGREES)
-        self.armLength = self.armmotor.position(DEGREES) / self.armGearRatio
+        self.armmotor.spin_to_position(FORWARD, lengthDifference * armGearRatio, DEGREES)
+        self.armLength = self.armmotor.position(DEGREES) / armGearRatio
     def setAngle(self, angle):
         actualAngle = self.clamp(angle, minArmAngle, maxArmAngle)
         angleDifference = actualAngle - self.armAngle
-        self.pivotmotor.spin_to_position(FORWARD, angleDifference * self.pivotGearRatio, DEGREES)
-        self.armAngle = self.pivotmotor.position(DEGREES) / self.pivotGearRatio
+        self.pivotmotor.spin_to_position(FORWARD, angleDifference * pivotGearRatio, DEGREES)
+        self.armAngle = self.pivotmotor.position(DEGREES) / pivotGearRatio
     def getAngle(self):
         return self.armAngle
-    def clamp(self, value, min_value, max_value):
-        return max(min_value, min(value, max_value))
-    def toPosition(self, length, angle):
+    def getWristAngle(self):
+        return self.wristmotor.position(DEGREES) / wristGearRatio
+    def setWristAngle(self, angle):
+        actualAngle = self.clamp(angle, minWristAngle, maxWristAngle)
+        angleDifference = actualAngle - self.getWristAngle()
+        self.wristmotor.spin_to_position(FORWARD, angleDifference * wristGearRatio, DEGREES)
+        self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
+    def toPositionCommand(self, length, angle, wristAngle):
         self.setLength(length)
         self.setAngle(angle)
-class Intake ():
+        self.setWristAngle(wristAngle)
+        self.currentCommand = None
+    def clamp(self, value, min_value, max_value):
+        return max(min_value, min(value, max_value))
+class Intake (Subsystem):
     def __init__(self, intakemotor):
         self.intakemotor = intakemotor
         self.escapeLoop = False
-    def runIntake(self, direction):
+    def runIntakeCommand(self, direction):
         if direction == "forward":
             self.intakemotor.spin(FORWARD)
         else:
             self.intakemotor.spin(REVERSE)
-    def stopIntake(self):
+        self.currentCommand = None
+    def stopIntakeCommand(self):
         self.escapeLoop = True
         self.intakemotor.stop()
         self.escapeLoop = False
-    def intakeUntilCurrent(self):
-        self.runIntake("reverse")
+        self.currentCommand = None
+    def intakeUntilCurrentCommand(self):
         while self.intakemotor.current < 0.5 or self.escapeLoop == False:
-            pass
-        self.stopIntake()
-class Forks ():
-    def __init__(self, forkmotor, rollerMotor):
+            self.runIntakeCommand("reverse")
+        self.stopIntakeCommand()
+        self.currentCommand = None
+class Forks(Subsystem):
+    def __init__(self, forkmotor):
         self.forkmotor = forkmotor
-        self.rollerMotor = rollerMotor
-        self.gearRatio = forksGearRatio
-        self.rollerDiameter = rollerDiameter
-        self.rollerCircumference = math.pi * rollerDiameter
         self.forksDeployed = False
         self.basketContains = []
         self.nextSlot = 0,0
         self.currentSlot = 0
     def deployForks(self):
-        self.forkmotor.spin_for(FORWARD, 90*self.gearRatio, DEGREES)
+        self.forkmotor.spin_for(FORWARD, 90 * forksGearRatio, DEGREES)
         self.forksDeployed = True
     def retractForks(self):
-        self.forkmotor.spin_for(FORWARD, -90*self.gearRatio, DEGREES)
+        self.forkmotor.spin_for(FORWARD, -90 * forksGearRatio, DEGREES)
         self.forksDeployed = False
-    def rollBasket(self, distance):
-        self.rollerMotor.spin_for(FORWARD, distance, DEGREES, True)
-    def toggleForks(self):
+    def toggleForksCommand(self):
         if self.forksDeployed:
             self.retractForks()
         else:
             self.deployForks()
-    def moveToFirstSlot(self):
-        if self.forksDeployed and self.nextSlot[0] != -1:
-            self.nextSlot = self.getLeftestSlot()
-            distanceToOpenSlotSmall = self.currentSlot * smallFruitWidth
-            distanceToOpenSlotLarge = self.currentSlot * largeFruitWidth
-            slotDifference = self.nextSlot[0] - self.currentSlot
-            smallDriveDegrees = distanceToOpenSlotSmall * slotDifference * self.rollerCircumference * self.gearRatio
-            largeDriveDegrees = distanceToOpenSlotLarge * slotDifference * self.rollerCircumference * self.gearRatio
-            self.rollBasket(smallDriveDegrees)
-            self.addObject(self.nextSlot[0], self.nextSlot[1])
+        self.currentCommand = None
     def addObject(self, row, column):
         if len(self.basketContains) < row-1:
             if (column == 1):
@@ -393,19 +397,21 @@ fl_motor = Motor(Ports.PORT1, 18_1, True)
 fr_motor = Motor(Ports.PORT9, 18_1, False)
 bl_motor = Motor(Ports.PORT2, 18_1, True)
 br_motor = Motor(Ports.PORT10, 18_1, False)
-arm_motor = Motor(Ports.PORT11, 18_1, False)
+arm_motor = Motor(Ports.PORT6, 18_1, False)
+wrist_motor = Motor(Ports.PORT11, 18_1, False)
 pivot_motor = Motor(Ports.PORT7, 18_1, False)
 intake_motor = Motor(Ports.PORT5, 18_1, False)
 fork_motor = Motor(Ports.PORT8, 18_1, False)
-roller_motor = Motor(Ports.PORT6, 18_1, False)
 inertial = Inertial(Ports.PORT3)
 camera = Vision(Ports.PORT4, 50)
 drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
 intake = Intake(intake_motor)
-forks = Forks(fork_motor, roller_motor)
-arm = Arm(arm_motor, pivot_motor)
+forks = Forks(fork_motor)
+arm = Arm(arm_motor, pivot_motor, wrist_motor)
 setSubsystems(drivebase, arm, intake, forks)
 controller = Controller()
-controller.buttonA.pressed(lambda: drivebase.driveToPose(0, 0, 0))
-controller.buttonB.pressed(lambda: drivebase.driveToPose(0, 0, 90))
-grabFruit((0, 0), lowFruitHeight)
+drivebase.setDefaultCommand(drivebase.driveCommand(controller.axis3, controller.axis4, controller.axis2))
+arm.setDefaultCommand(arm.toPositionCommand(0, 0, 0))
+intake.setDefaultCommand(intake.stopIntakeCommand())
+controller.buttonA.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 0)))
+controller.buttonB.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 90)))

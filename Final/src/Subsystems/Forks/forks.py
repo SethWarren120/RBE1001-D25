@@ -1,13 +1,10 @@
 from vex import *
 from constants import *
+from Subsystems.subsystem import *
 
-class Forks ():
-    def __init__(self, forkmotor, rollerMotor):
+class Forks(Subsystem):
+    def __init__(self, forkmotor):
         self.forkmotor = forkmotor
-        self.rollerMotor = rollerMotor
-        self.gearRatio = forksGearRatio
-        self.rollerDiameter = rollerDiameter
-        self.rollerCircumference = math.pi * rollerDiameter
 
         self.forksDeployed = False
         self.basketContains = []
@@ -15,36 +12,19 @@ class Forks ():
         self.currentSlot = 0
 
     def deployForks(self):
-        self.forkmotor.spin_for(FORWARD, 90*self.gearRatio, DEGREES)
+        self.forkmotor.spin_for(FORWARD, 90 * forksGearRatio, DEGREES)
         self.forksDeployed = True
 
     def retractForks(self):
-        self.forkmotor.spin_for(FORWARD, -90*self.gearRatio, DEGREES)
+        self.forkmotor.spin_for(FORWARD, -90 * forksGearRatio, DEGREES)
         self.forksDeployed = False
 
-    def rollBasket(self, distance):
-        self.rollerMotor.spin_for(FORWARD, distance, DEGREES, True)
-
-    def toggleForks(self):
+    def toggleForksCommand(self):
         if self.forksDeployed:
             self.retractForks()
         else:
             self.deployForks()
-    
-    def moveToFirstSlot(self):
-        #definitely doesn't work
-        if self.forksDeployed and self.nextSlot[0] != -1:
-            self.nextSlot = self.getLeftestSlot()
-            distanceToOpenSlotSmall = self.currentSlot * smallFruitWidth
-            distanceToOpenSlotLarge = self.currentSlot * largeFruitWidth
-
-            slotDifference = self.nextSlot[0] - self.currentSlot
-            smallDriveDegrees = distanceToOpenSlotSmall * slotDifference * self.rollerCircumference * self.gearRatio
-            largeDriveDegrees = distanceToOpenSlotLarge * slotDifference * self.rollerCircumference * self.gearRatio
-
-            self.rollBasket(smallDriveDegrees)
-            # self.rollBasket(largeDriveDegrees)
-            self.addObject(self.nextSlot[0], self.nextSlot[1])
+        self.currentCommand = None
 
     def addObject(self, row, column):
         if len(self.basketContains) < row-1:

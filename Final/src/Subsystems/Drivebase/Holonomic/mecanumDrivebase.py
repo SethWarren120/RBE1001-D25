@@ -3,10 +3,11 @@ from vex import *
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
 import math
 from constants import *
+from Subsystems.subsystem import *
 
-class MecanumDrivebase ():
-    def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, _camera,
-                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
+class MecanumDrivebase (Subsystem):
+    def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, _camera, 
+                 _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorFrontLeft = _motorFrontLeft
         self.motorFrontRight = _motorFrontRight
         self.motorBackLeft = _motorBackLeft
@@ -31,43 +32,28 @@ class MecanumDrivebase ():
         self.drivePID = drivePID
         self.turnPID = turnPID
 
-        self.driveDuration = -1
         self.objectLocations = []
-
-        if motorCorrectionConfig == None:
-            motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
-        else:
-            motorCorrectionConfig.units = _rotationUnits
 
         odometryThread = Thread(self.updateOdometry)
         findObjectsThread = Thread(self.calculateObjectPostion)
-        # self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
 
-    def drive(self, xVel, yVel, rotVel, durationSeconds=-1):
-        startTime = time.time()  # Record the start time
-
+    def driveCommand(self, xVel, yVel, rotVel):
         rotationFactor = (self.wheelBase + self.trackWidth) / 2.0
 
-        while durationSeconds == -1 or (time.time() - startTime < durationSeconds):
-            # Get the current heading from the gyro
-            heading = self.gyro.heading(DEGREES)
-            headingRadians = math.radians(heading)  # Convert heading to radians
+        # Get the current heading from the gyro
+        heading = self.gyro.heading(DEGREES)
+        headingRadians = math.radians(heading)  # Convert heading to radians
 
-            # Apply field-centric transformation
-            tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
-            tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
+        # Apply field-centric transformation
+        tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
+        tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
 
-            # Drive the motors with the transformed velocities
-            self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
-            self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
-            self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
-            self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
-
-        # Stop the motors after the loop ends
-        self.motorFrontLeft.stop()
-        self.motorFrontRight.stop()
-        self.motorBackLeft.stop()
-        self.motorBackRight.stop()
+        # Drive the motors with the transformed velocities
+        self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
+        self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
+        self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
+        self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
+        self.currentCommand = None
 
     def updateOdometry(self):
         frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * self.circumference
@@ -92,7 +78,7 @@ class MecanumDrivebase ():
         self.y += deltaY
         self.heading = self.gyro.heading(DEGREES)
 
-    def driveToPose(self, x, y, heading, tolerance=0.5):
+    def driveToPoseCommand(self, x, y, heading, tolerance=0.5):
         self.driveDuration = 0
 
         prevDistanceError = 0
@@ -146,13 +132,12 @@ class MecanumDrivebase ():
             rotVel = max(-200, min(200, rotVel))
 
             # Drive the robot
-            self.drive(xVel, yVel, rotVel)
+            self.driveCommand(xVel, yVel, rotVel)
 
             # Update odometry
             self.updateOdometry()
 
-        # Stop the robot once the target pose is reached
-        self.drive(0, 0, 0)
+        self.currentCommand = None
     
     def calculateObjectPostion(self):
         self.camera.takeSnapshot()

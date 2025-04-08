@@ -38,5 +38,9 @@ maxArmLength = 20 #inches
 minArmAngle = 0 #degrees
 maxArmAngle = 180 #degrees
 
+minWristAngle = 0 #degrees
+maxWristAngle = 180 #degrees
+
 armGearRatio = 5
 pivotGearRatio = 5
+wristGearRatio = 5
