@@ -17,17 +17,69 @@ class Arm (Subsystem):
 
     def setLength(self, length):
         actualLength = self.clamp(length, minArmLength, maxArmLength)
-        lengthDifference = actualLength - self.armLength
+        targetLength = actualLength
 
-        self.armmotor.spin_to_position(FORWARD, lengthDifference * armGearRatio, DEGREES)
+        # PID variables
+        kp, ki, kd = armPID
+        integral = 0
+        prevError = 0
+
+        while True:
+            # Calculate the error
+            currentLength = self.getLength()
+            error = targetLength - currentLength
+
+            # Break the loop if the error is within a small tolerance
+            if abs(error) < armTolerance:
+                break
+
+            # PID calculations
+            integral += error
+            derivative = error - prevError
+            output = kp * error + ki * integral + kd * derivative
+
+            # Spin the motor based on the PID output
+            self.armmotor.spin(FORWARD, output, PERCENT)
+
+            # Update previous error
+            prevError = error
+
+        # Stop the motor once the target is reached
+        self.armmotor.stop()
         self.armLength = self.armmotor.position(DEGREES) / armGearRatio
 
     def setAngle(self, angle):
         actualAngle = self.clamp(angle, minArmAngle, maxArmAngle)
-        angleDifference = actualAngle - self.armAngle
+        targetAngle = actualAngle
 
-        self.pivotmotor.spin_to_position(FORWARD, angleDifference * pivotGearRatio, DEGREES)
-        self.armAngle = self.pivotmotor.position(DEGREES) / pivotGearRatio
+        # PID variables
+        kp, ki, kd = pivotPID
+        integral = 0
+        prevError = 0
+
+        while True:
+            # Calculate the error
+            currentAngle = self.getAngle()
+            error = targetAngle - currentAngle
+
+            # Break the loop if the error is within a small tolerance
+            if abs(error) < pivotTolerance:
+                break
+
+            # PID calculations
+            integral += error
+            derivative = error - prevError
+            output = kp * error + ki * integral + kd * derivative
+
+            # Spin the motor based on the PID output
+            self.pivotmotor.spin(FORWARD, output, PERCENT)
+
+            # Update previous error
+            prevError = error
+
+        # Stop the motor once the target is reached
+        self.pivotmotor.stop()
+        self.armAngle = self.pivotmotor.position(DEGREES) / wristGearRatio
     
     def getAngle(self):
         return self.armAngle
@@ -37,14 +89,40 @@ class Arm (Subsystem):
     
     def setWristAngle(self, angle):
         actualAngle = self.clamp(angle, minWristAngle, maxWristAngle)
-        angleDifference = actualAngle - self.getWristAngle()
+        targetAngle = actualAngle
 
-        self.wristmotor.spin_to_position(FORWARD, angleDifference * wristGearRatio, DEGREES)
+        # PID variables
+        kp, ki, kd = wristPID
+        integral = 0
+        prevError = 0
+
+        while True:
+            # Calculate the error
+            currentAngle = self.getWristAngle()
+            error = targetAngle - currentAngle
+
+            # Break the loop if the error is within a small tolerance
+            if abs(error) < wristTolerance:
+                break
+
+            # PID calculations
+            integral += error
+            derivative = error - prevError
+            output = kp * error + ki * integral + kd * derivative
+
+            # Spin the motor based on the PID output
+            self.wristmotor.spin(FORWARD, output, PERCENT)
+
+            # Update previous error
+            prevError = error
+
+        # Stop the motor once the target is reached
+        self.wristmotor.stop()
         self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
 
     def toPositionCommand(self, length, angle, wristAngle):
-        self.setLength(length)
-        self.setAngle(angle)
+        armLengthThread = Thread(lambda: self.setLength(length))
+        armAngleThead = Thread(lambda: self.setAngle(angle))
         self.setWristAngle(wristAngle)
         self.currentCommand = None
 

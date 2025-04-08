@@ -141,6 +141,12 @@ maxWristAngle = 180 #degrees
 armGearRatio = 5
 pivotGearRatio = 5
 wristGearRatio = 5
+armPID = [0,0,0]
+armTolerance = 1
+pivotPID = [0,0,0]
+pivotTolerance = 1
+wristPID = [0,0,0]
+wristTolerance = 1
 class Subsystem():
     def __init__(self):
         self.defaultCommand = None
@@ -166,38 +172,57 @@ class MecanumDrivebase (Subsystem):
         self.motorBackRight = _motorBackRight
         self.gyro = _gyro
         self.camera = _camera
-        self.diameter = wheelDiameter
-        self.gearing = gear_ratio
-        self.trackWidth = track_width
-        self.wheelBase = wheel_base
-        self.circumference = math.pi * wheelDiameter
-        self.dpi = 360.0 / self.circumference
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.x = 0
         self.y = 0
         self.heading = 0
-        self.drivePID = drivePID
-        self.turnPID = turnPID
         self.objectLocations = []
         odometryThread = Thread(self.updateOdometry)
         findObjectsThread = Thread(self.calculateObjectPostion)
     def driveCommand(self, xVel, yVel, rotVel):
-        rotationFactor = (self.wheelBase + self.trackWidth) / 2.0
+        rotationFactor = (wheel_base + track_width) / 2.0
         heading = self.gyro.heading(DEGREES)
         headingRadians = math.radians(heading)  # Convert heading to radians
         tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
         tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
-        self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
-        self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
-        self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
-        self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
+        distanceError = math.sqrt(tempXVel**2 + tempYVel**2)
+        integralDistanceError = 0
+        derivativeDistanceError = 0
+        prevDistanceError = 0
+        integralDistanceError += distanceError
+        derivativeDistanceError = distanceError - prevDistanceError
+        linearOutput = (
+            drivePID[0] * distanceError +
+            drivePID[1] * integralDistanceError +
+            drivePID[2] * derivativeDistanceError
+        )
+        prevDistanceError = distanceError
+        scaledXVel = linearOutput * (tempXVel / distanceError) if distanceError != 0 else 0
+        scaledYVel = linearOutput * (tempYVel / distanceError) if distanceError != 0 else 0
+        headingError = rotVel - self.heading
+        headingError = (headingError + 180) % 360 - 180  # Normalize to [-180, 180]
+        integralHeadingError = 0
+        derivativeHeadingError = 0
+        prevHeadingError = 0
+        integralHeadingError += headingError
+        derivativeHeadingError = headingError - prevHeadingError
+        rotationalOutput = (
+            turnPID[0] * headingError +
+            turnPID[1] * integralHeadingError +
+            turnPID[2] * derivativeHeadingError
+        )
+        prevHeadingError = headingError
+        self.motorFrontLeft.spin(FORWARD, scaledYVel + scaledXVel + rotationalOutput * rotationFactor)
+        self.motorFrontRight.spin(FORWARD, scaledYVel - scaledXVel - rotationalOutput * rotationFactor)
+        self.motorBackLeft.spin(FORWARD, scaledYVel - scaledXVel + rotationalOutput * rotationFactor)
+        self.motorBackRight.spin(FORWARD, scaledYVel + scaledXVel - rotationalOutput * rotationFactor)
         self.currentCommand = None
     def updateOdometry(self):
-        frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * self.circumference
-        frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * self.circumference
-        backLeftDistance = self.motorBackLeft.position(DEGREES) / 360.0 * self.circumference
-        backRightDistance = self.motorBackRight.position(DEGREES) / 360.0 * self.circumference
+        frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * wheelCircumference
+        frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * wheelCircumference
+        backLeftDistance = self.motorBackLeft.position(DEGREES) / 360.0 * wheelCircumference
+        backRightDistance = self.motorBackRight.position(DEGREES) / 360.0 * wheelCircumference
         avgX = (frontLeftDistance - frontRightDistance + backLeftDistance - backRightDistance) / 4.0
         avgY = (frontLeftDistance + frontRightDistance + backLeftDistance + backRightDistance) / 4.0
         heading = self.gyro.heading(DEGREES)
@@ -224,17 +249,17 @@ class MecanumDrivebase (Subsystem):
             integralDistanceError += distanceError
             derivativeDistanceError = distanceError - prevDistanceError
             positionOutput = (
-                self.drivePID[0] * distanceError +
-                self.drivePID[1] * integralDistanceError +
-                self.drivePID[2] * derivativeDistanceError
+                drivePID[0] * distanceError +
+                drivePID[1] * integralDistanceError +
+                drivePID[2] * derivativeDistanceError
             )
             prevDistanceError = distanceError
             integralHeadingError += headingError
             derivativeHeadingError = headingError - prevHeadingError
             headingOutput = (
-                self.turnPID[0] * headingError +
-                self.turnPID[1] * integralHeadingError +
-                self.turnPID[2] * derivativeHeadingError
+                turnPID[0] * headingError +
+                turnPID[1] * integralHeadingError +
+                turnPID[2] * derivativeHeadingError
             )
             prevHeadingError = headingError
             angleToTarget = math.atan2(deltaY, deltaX)  # Angle to the target in radians
@@ -288,26 +313,65 @@ class Arm (Subsystem):
         return self.armLength
     def setLength(self, length):
         actualLength = self.clamp(length, minArmLength, maxArmLength)
-        lengthDifference = actualLength - self.armLength
-        self.armmotor.spin_to_position(FORWARD, lengthDifference * armGearRatio, DEGREES)
+        targetLength = actualLength
+        kp, ki, kd = armPID
+        integral = 0
+        prevError = 0
+        while True:
+            currentLength = self.getLength()
+            error = targetLength - currentLength
+            if abs(error) < armTolerance:
+                break
+            integral += error
+            derivative = error - prevError
+            output = kp * error + ki * integral + kd * derivative
+            self.armmotor.spin(FORWARD, output, PERCENT)
+            prevError = error
+        self.armmotor.stop()
         self.armLength = self.armmotor.position(DEGREES) / armGearRatio
     def setAngle(self, angle):
         actualAngle = self.clamp(angle, minArmAngle, maxArmAngle)
-        angleDifference = actualAngle - self.armAngle
-        self.pivotmotor.spin_to_position(FORWARD, angleDifference * pivotGearRatio, DEGREES)
-        self.armAngle = self.pivotmotor.position(DEGREES) / pivotGearRatio
+        targetAngle = actualAngle
+        kp, ki, kd = pivotPID
+        integral = 0
+        prevError = 0
+        while True:
+            currentAngle = self.getAngle()
+            error = targetAngle - currentAngle
+            if abs(error) < pivotTolerance:
+                break
+            integral += error
+            derivative = error - prevError
+            output = kp * error + ki * integral + kd * derivative
+            self.pivotmotor.spin(FORWARD, output, PERCENT)
+            prevError = error
+        self.pivotmotor.stop()
+        self.armAngle = self.pivotmotor.position(DEGREES) / wristGearRatio
     def getAngle(self):
         return self.armAngle
     def getWristAngle(self):
         return self.wristmotor.position(DEGREES) / wristGearRatio
     def setWristAngle(self, angle):
         actualAngle = self.clamp(angle, minWristAngle, maxWristAngle)
-        angleDifference = actualAngle - self.getWristAngle()
-        self.wristmotor.spin_to_position(FORWARD, angleDifference * wristGearRatio, DEGREES)
+        targetAngle = actualAngle
+        kp, ki, kd = wristPID
+        integral = 0
+        prevError = 0
+        while True:
+            currentAngle = self.getWristAngle()
+            error = targetAngle - currentAngle
+            if abs(error) < wristTolerance:
+                break
+            integral += error
+            derivative = error - prevError
+            output = kp * error + ki * integral + kd * derivative
+            self.wristmotor.spin(FORWARD, output, PERCENT)
+            prevError = error
+        self.wristmotor.stop()
         self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
     def toPositionCommand(self, length, angle, wristAngle):
-        self.setLength(length)
-        self.setAngle(angle)
+        armLengthThread = Thread(lambda: self.setLength(length))
+        armAngleThead = Thread(lambda: self.setAngle(angle))
         self.setWristAngle(wristAngle)
         self.currentCommand = None
     def clamp(self, value, min_value, max_value):

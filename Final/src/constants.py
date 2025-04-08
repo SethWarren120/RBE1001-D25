@@ -44,3 +44,10 @@ maxWristAngle = 180 #degrees
 armGearRatio = 5
 pivotGearRatio = 5
 wristGearRatio = 5
+
+armPID = [0,0,0]
+armTolerance = 1
+pivotPID = [0,0,0]
+pivotTolerance = 1
+wristPID = [0,0,0]
+wristTolerance = 1

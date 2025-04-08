@@ -15,13 +15,6 @@ class MecanumDrivebase (Subsystem):
         self.gyro = _gyro
         self.camera = _camera
 
-        self.diameter = wheelDiameter
-        self.gearing = gear_ratio
-        self.trackWidth = track_width
-        self.wheelBase = wheel_base
-        self.circumference = math.pi * wheelDiameter
-        self.dpi = 360.0 / self.circumference
-
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
 
@@ -29,16 +22,13 @@ class MecanumDrivebase (Subsystem):
         self.y = 0
         self.heading = 0
 
-        self.drivePID = drivePID
-        self.turnPID = turnPID
-
         self.objectLocations = []
 
         odometryThread = Thread(self.updateOdometry)
         findObjectsThread = Thread(self.calculateObjectPostion)
 
     def driveCommand(self, xVel, yVel, rotVel):
-        rotationFactor = (self.wheelBase + self.trackWidth) / 2.0
+        rotationFactor = (wheel_base + track_width) / 2.0
 
         # Get the current heading from the gyro
         heading = self.gyro.heading(DEGREES)
@@ -48,18 +38,54 @@ class MecanumDrivebase (Subsystem):
         tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
         tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
 
-        # Drive the motors with the transformed velocities
-        self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
-        self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
-        self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
-        self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
+        # PID for linear velocity
+        distanceError = math.sqrt(tempXVel**2 + tempYVel**2)
+        integralDistanceError = 0
+        derivativeDistanceError = 0
+        prevDistanceError = 0
+
+        integralDistanceError += distanceError
+        derivativeDistanceError = distanceError - prevDistanceError
+        linearOutput = (
+            drivePID[0] * distanceError +
+            drivePID[1] * integralDistanceError +
+            drivePID[2] * derivativeDistanceError
+        )
+        prevDistanceError = distanceError
+
+        # Scale the velocities using linearOutput
+        scaledXVel = linearOutput * (tempXVel / distanceError) if distanceError != 0 else 0
+        scaledYVel = linearOutput * (tempYVel / distanceError) if distanceError != 0 else 0
+
+        # PID for rotational velocity
+        headingError = rotVel - self.heading
+        headingError = (headingError + 180) % 360 - 180  # Normalize to [-180, 180]
+        integralHeadingError = 0
+        derivativeHeadingError = 0
+        prevHeadingError = 0
+
+        integralHeadingError += headingError
+        derivativeHeadingError = headingError - prevHeadingError
+        rotationalOutput = (
+            turnPID[0] * headingError +
+            turnPID[1] * integralHeadingError +
+            turnPID[2] * derivativeHeadingError
+        )
+        prevHeadingError = headingError
+
+        # Drive the motors with the PID outputs
+        self.motorFrontLeft.spin(FORWARD, scaledYVel + scaledXVel + rotationalOutput * rotationFactor)
+        self.motorFrontRight.spin(FORWARD, scaledYVel - scaledXVel - rotationalOutput * rotationFactor)
+        self.motorBackLeft.spin(FORWARD, scaledYVel - scaledXVel + rotationalOutput * rotationFactor)
+        self.motorBackRight.spin(FORWARD, scaledYVel + scaledXVel - rotationalOutput * rotationFactor)
+
         self.currentCommand = None
 
     def updateOdometry(self):
-        frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * self.circumference
-        frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * self.circumference
-        backLeftDistance = self.motorBackLeft.position(DEGREES) / 360.0 * self.circumference
-        backRightDistance = self.motorBackRight.position(DEGREES) / 360.0 * self.circumference
+        frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * wheelCircumference
+        frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * wheelCircumference
+        backLeftDistance = self.motorBackLeft.position(DEGREES) / 360.0 * wheelCircumference
+        backRightDistance = self.motorBackRight.position(DEGREES) / 360.0 * wheelCircumference
 
         # Average the distances to calculate the robot's movement in local coordinates
         avgX = (frontLeftDistance - frontRightDistance + backLeftDistance - backRightDistance) / 4.0
@@ -104,9 +130,9 @@ class MecanumDrivebase (Subsystem):
             integralDistanceError += distanceError
             derivativeDistanceError = distanceError - prevDistanceError
             positionOutput = (
-                self.drivePID[0] * distanceError +
-                self.drivePID[1] * integralDistanceError +
-                self.drivePID[2] * derivativeDistanceError
+                drivePID[0] * distanceError +
+                drivePID[1] * integralDistanceError +
+                drivePID[2] * derivativeDistanceError
             )
             prevDistanceError = distanceError
 
@@ -114,9 +140,9 @@ class MecanumDrivebase (Subsystem):
             integralHeadingError += headingError
             derivativeHeadingError = headingError - prevHeadingError
             headingOutput = (
-                self.turnPID[0] * headingError +
-                self.turnPID[1] * integralHeadingError +
-                self.turnPID[2] * derivativeHeadingError
+                turnPID[0] * headingError +
+                turnPID[1] * integralHeadingError +
+                turnPID[2] * derivativeHeadingError
             )
             prevHeadingError = headingError
 
