@@ -6,6 +6,7 @@ class Subsystem():
         self.currentCommand = None
 
         self.periodic()
+        
     def setDefaultCommand(self, command: function):
         self.defaultCommand = command
 
