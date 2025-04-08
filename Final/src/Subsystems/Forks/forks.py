@@ -3,7 +3,7 @@ from constants import *
 from Subsystems.subsystem import *
 
 class Forks(Subsystem):
-    def __init__(self, forkmotor):
+    def __init__(self, forkmotor: Motor):
         self.forkmotor = forkmotor
 
         self.forksDeployed = False
@@ -19,7 +19,7 @@ class Forks(Subsystem):
         self.forkmotor.spin_for(FORWARD, -90 * forksGearRatio, DEGREES)
         self.forksDeployed = False
 
-    def toggleForksCommand(self):
+    def toggleForks(self):
         if self.forksDeployed:
             self.retractForks()
         else:
@@ -46,3 +46,11 @@ class Forks(Subsystem):
                 if self.basketContains[i][j] == 0:
                     return i+1,j+1
         return -1,-1
+    
+    def retractForksCommand(self):
+        self.run(self.retractForks())
+        self.currentCommand = None
+        
+    def toggleForksCommand(self):
+        self.run(self.toggleForks())
+        self.currentCommand = None

@@ -6,8 +6,8 @@ from constants import *
 from Subsystems.subsystem import *
 
 class MecanumDrivebase (Subsystem):
-    def __init__(self, _motorFrontLeft, _motorFrontRight, _motorBackLeft, _motorBackRight, _gyro, _camera, 
-                 _rotationUnits = DEGREES, _speedUnits = RPM):
+    def __init__(self, _motorFrontLeft: Motor, _motorFrontRight: Motor, _motorBackLeft: Motor, _motorBackRight: Motor, 
+                 _gyro: Inertial, _camera: Vision, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorFrontLeft = _motorFrontLeft
         self.motorFrontRight = _motorFrontRight
         self.motorBackLeft = _motorBackLeft
@@ -27,7 +27,7 @@ class MecanumDrivebase (Subsystem):
         odometryThread = Thread(self.updateOdometry)
         findObjectsThread = Thread(self.calculateObjectPostion)
 
-    def driveCommand(self, xVel, yVel, rotVel):
+    def drive(self, xVel, yVel, rotVel):
         rotationFactor = (wheel_base + track_width) / 2.0
 
         # Get the current heading from the gyro
@@ -79,8 +79,6 @@ class MecanumDrivebase (Subsystem):
         self.motorBackLeft.spin(FORWARD, scaledYVel - scaledXVel + rotationalOutput * rotationFactor)
         self.motorBackRight.spin(FORWARD, scaledYVel + scaledXVel - rotationalOutput * rotationFactor)
 
-        self.currentCommand = None
-
     def updateOdometry(self):
         frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * wheelCircumference
         frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * wheelCircumference
@@ -104,7 +102,7 @@ class MecanumDrivebase (Subsystem):
         self.y += deltaY
         self.heading = self.gyro.heading(DEGREES)
 
-    def driveToPoseCommand(self, x, y, heading, tolerance=0.5):
+    def driveToPose(self, x, y, heading, tolerance=0.5):
         self.driveDuration = 0
 
         prevDistanceError = 0
@@ -162,22 +160,20 @@ class MecanumDrivebase (Subsystem):
 
             # Update odometry
             self.updateOdometry()
-
-        self.currentCommand = None
     
     def calculateObjectPostion(self):
-        self.camera.takeSnapshot()
+        self.camera.take_snapshot(0)
 
-        largestObject = self.camera.largest_object
+        largestObject = self.camera.largest_object()
         if largestObject.exists:
             # Calculate the distance to the fruit using the ratio of actual width to image width
             if largestObject.width > 0:
 
-                distanceToSmallFruit = (smallFruitWidth / largestObject.width) * self.camera.focal_length
-                distanceToLargeFruit = (largeFruitWidth / largestObject.width) * self.camera.focal_length
+                distanceToSmallFruit = (smallFruitWidth / largestObject.width) * cameraFocalLength
+                distanceToLargeFruit = (largeFruitWidth / largestObject.width) * cameraFocalLength
 
                 # Calculate the angle to the fruit relative to the robot's heading
-                angleToFruit = math.radians(largestObject.centerX - (self.camera.width / 2)) * self.camera.field_of_view
+                angleToFruit = math.radians(largestObject.centerX - (largestObject.width / 2)) * cameraFOV
 
                 # Calculate the fruit's position in the field
                 smallFruitX = self.x + distanceToSmallFruit * math.cos(math.radians(self.heading) + angleToFruit)
@@ -206,3 +202,18 @@ class MecanumDrivebase (Subsystem):
 
         # Update the objectLocations list with unique positions
         self.objectLocations = uniqueLocations
+    
+    def zeroGyro(self):
+        self.gyro.set_heading(0, DEGREES)
+
+    def driveCommand(self, x, y, theta):
+        self.run(self.drive(x,y,theta))
+        self.currentCommand = None
+
+    def driveToPoseCommand(self, x, y, theta):
+        self.run(self.driveToPose(x,y,theta))
+        self.currentCommand = None
+
+    def zeroGyroCommand(self):
+        self.run(self.zeroGyro())
+        self.currentCommand = None

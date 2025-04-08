@@ -42,12 +42,12 @@ setSubsystems(drivebase, arm, intake, forks)
 
 controller = Controller()
 
-drivebase.setDefaultCommand(drivebase.driveCommand(controller.axis3, controller.axis4, controller.axis2))
-arm.setDefaultCommand(arm.toPositionCommand(0, 0, 0))
-intake.setDefaultCommand(intake.stopIntakeCommand())
+drivebase.setDefaultCommand(lambda: drivebase.driveCommand(controller.axis3, controller.axis4, controller.axis2))
+arm.setDefaultCommand(lambda: arm.toPositionCommand(0, 0, 0))
+intake.setDefaultCommand(lambda: intake.stopIntakeCommand())
 
 controller.buttonA.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 0)))
 controller.buttonB.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 90)))
-
+controller.buttonX.pressed(lambda: drivebase.run(drivebase.zeroGyroCommand()))
 # grabFruit((0, 0), lowFruitHeight)
 # drivebase.drive(controller.axis3, controller.axis4, controller.axis2)

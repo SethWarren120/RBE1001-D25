@@ -1,7 +1,11 @@
 from vex import *
 from constants import *
+from Subsystems.Drivebase.Holonomic.mecanumDrivebase import MecanumDrivebase
+from Subsystems.Arm.arm import Arm
+from Subsystems.Intake.intake import Intake
+from Subsystems.Forks.forks import Forks
 
-def setSubsystems(driveBase, arm, intake, forks):
+def setSubsystems(driveBase: MecanumDrivebase, arm: Arm, intake: Intake, forks: Forks):
     global driveSub, armSub, intakeSub, forksSub
 
     driveSub = driveBase
@@ -9,11 +13,14 @@ def setSubsystems(driveBase, arm, intake, forks):
     intakeSub = intake
     forksSub = forks
 
-def grabFruit(fruitPose, height):
-    armSub.toPosition(height, lowFruitAngle)
-    intakeSub.intakeUntilCurrent()
+def grabFruit(fruitPose, length, isLowFruit):
+    if isLowFruit:
+        armSub.run(armSub.toPositionCommand(length, lowFruitAngle, lowFruitWristAngle))
+    else:
+        armSub.run(armSub.toPositionCommand(length, highFruitAngle, highFruitWristAngle))
+    intakeSub.run(intakeSub.intakeUntilCurrentCommand())
     
-    armLength = armSub.getHeight()  # Get the current arm length
+    armLength = armSub.getLength()  # Get the current arm length
     armAngle = math.radians(armSub.getAngle())  # Convert arm angle to radians
     
     robotHeading = math.radians(driveSub.heading) # uses the heading in radians
@@ -28,8 +35,8 @@ def grabFruit(fruitPose, height):
     deltaY = fruitPose[1] - driveSub.y  # get the change in y position
     targetHeading = math.degrees(math.atan2(deltaY, deltaX))  # find the angle the robot neeeds to turn to face the fruit
     
-    driveSub.driveToPose(adjustedX, adjustedY, targetHeading)
+    driveSub.run(driveSub.driveToPoseCommand(adjustedX, adjustedY, targetHeading))
 
 def stowArm():
-    armSub.toPosition(minArmLength, minArmAngle)
-    intakeSub.stopIntake()
+    intakeSub.run(intakeSub.stopIntakeCommand())
+    armSub.run(armSub.toPositionCommand(minArmLength, minArmAngle, minWristAngle))

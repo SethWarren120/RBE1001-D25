@@ -6,16 +6,15 @@ class Subsystem():
         self.currentCommand = None
 
         self.periodic()
-        
-    def setDefaultCommand(self, command):
+    def setDefaultCommand(self, command: function):
         self.defaultCommand = command
 
     def run(self, command):
         self.currentCommand = command
-        runThread = Thread(lambda: command)
+        runThread = Thread(command)
 
     def periodic(self):
         while True:
-            if (self.currentCommand == None):
+            if (self.currentCommand == None and self.defaultCommand != None):
                 self.run(self.defaultCommand)
             wait(20)

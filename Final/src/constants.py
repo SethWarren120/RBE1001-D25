@@ -13,6 +13,9 @@ drivePID = [1,0,0]
 turnPID = [1,0,0]
 
 #vision constants
+cameraFocalLength = 2.5 #inches
+cameraFOV = 60 #degrees
+
 fruitHeight1 = 5 #inches
 fruitHeight2 = 10 #inches
 
@@ -31,6 +34,8 @@ lowFruitHeight = 5 #inches
 lowFruitAngle = 45 #degrees
 highFruitHeight = 10 #inches
 highFruitAngle = 90 #degrees
+lowFruitWristAngle = 5 #degrees
+highFruitWristAngle = 10 #degrees
 
 minArmLength = 0 #inches
 maxArmLength = 20 #inches
