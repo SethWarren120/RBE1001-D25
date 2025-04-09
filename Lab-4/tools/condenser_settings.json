@@ -1,0 +1,5 @@
+{
+	"projectPath": "src/",
+    "main": "main.py",
+    "output": "gen/robot.py"
+}
