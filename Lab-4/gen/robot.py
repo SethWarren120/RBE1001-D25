@@ -1,6 +1,26 @@
 # Automatically generated deployment script
 # Edits to this file will be overwritten
 from vex import *
+import math
+wheelDiameter = 4.0
+wheel_travel = math.pi*wheelDiameter
+track_width = 11
+wheel_base = 11
+gear_ratio = 5
+wheelCircumference = 3.14 * wheelDiameter 
+degreesPerInch = 360.0 / wheelCircumference
+drivePID = [1,0,0]
+turnPID = [1,0,0]
+vision_orange = Colordesc(1,245,134,89,5,0.17)
+cameraOffset = [0, 0, 0] #inches
+cameraFOV = 75 #degrees
+cameraXOffset = -320/2
+cameraYOffset = -240/2
+fruitHeight1 = 5 #inches
+fruitHeight2 = 10 #inches
+smallFruitWidth = 2 + 3/8 #inches
+largeFruitWidth = 5.5 #inches
+objectThreashold = 5
 class DrivebaseMotorCorrector:
     print("hello :3")
     motors = []
@@ -110,47 +130,6 @@ class DrivebaseMotorCorrectionProfile:
         print(config.startingOffsets)
         config.configured = False
         return config
-import math
-wheelDiameter = 4.0
-wheel_travel = math.pi*wheelDiameter
-track_width = 11
-wheel_base = 11
-gear_ratio = 5
-wheelCircumference = 3.14 * wheelDiameter 
-degreesPerInch = 360.0 / wheelCircumference
-drivePID = [1,0,0]
-turnPID = [1,0,0]
-cameraFocalLength = 2.5 #inches
-cameraFOV = 60 #degrees
-fruitHeight1 = 5 #inches
-fruitHeight2 = 10 #inches
-smallFruitWidth = 2.5 #inches
-largeFruitWidth = 5.5 #inches
-objectThreashold = 5
-rollerDiameter = 2.5 #inches
-rollerGearRatio = 5
-forksGearRatio = 5
-lowFruitHeight = 5 #inches
-lowFruitAngle = 45 #degrees
-highFruitHeight = 10 #inches
-highFruitAngle = 90 #degrees
-lowFruitWristAngle = 5 #degrees
-highFruitWristAngle = 10 #degrees
-minArmLength = 0 #inches
-maxArmLength = 20 #inches
-minArmAngle = 0 #degrees
-maxArmAngle = 180 #degrees
-minWristAngle = 0 #degrees
-maxWristAngle = 180 #degrees
-armGearRatio = 5
-pivotGearRatio = 5
-wristGearRatio = 5
-armPID = [0,0,0]
-armTolerance = 1
-pivotPID = [0,0,0]
-pivotTolerance = 1
-wristPID = [0,0,0]
-wristTolerance = 1
 class Subsystem():
     def __init__(self):
         self.defaultCommand = None
@@ -166,68 +145,48 @@ class Subsystem():
             if (self.currentCommand == None and self.defaultCommand != None):
                 self.run(self.defaultCommand)
             wait(20)
-import math
-class MecanumDrivebase (Subsystem):
-    def __init__(self, _motorFrontLeft: Motor, _motorFrontRight: Motor, _motorBackLeft: Motor, _motorBackRight: Motor, 
-                 _gyro: Inertial, _camera: Vision, _rotationUnits = DEGREES, _speedUnits = RPM):
-        self.motorFrontLeft = _motorFrontLeft
-        self.motorFrontRight = _motorFrontRight
-        self.motorBackLeft = _motorBackLeft
-        self.motorBackRight = _motorBackRight
-        self.gyro = _gyro
-        self.camera = _camera
+class TankDrivebase (Subsystem):
+    def __init__(self, _motorLeft, _motorRight, gyro: Inertial, vision: AiVision,
+                 motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
+        self.motorLeft = _motorLeft
+        self.motorRight = _motorRight
+        self.gyro = gyro
+        self.vision = vision
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
-        self.x = 0
-        self.y = 0
-        self.heading = 0
-        self.objectLocations = []
+        self.x = 0.0
+        self.y = 0.0
+        self.heading = 0.0
         odometryThread = Thread(self.updateOdometry)
-        findObjectsThread = Thread(self.calculateObjectPostion)
-    def drive(self, xVel, yVel, rotVel):
-        rotationFactor = (wheel_base + track_width) / 2.0
-        heading = self.gyro.heading(DEGREES)
-        headingRadians = math.radians(heading)  # Convert heading to radians
-        tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
-        tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
-        distanceError = math.sqrt(tempXVel**2 + tempYVel**2)
-        integralDistanceError = 0
-        derivativeDistanceError = 0
-        prevDistanceError = 0
-        integralDistanceError += distanceError
-        derivativeDistanceError = distanceError - prevDistanceError
-        linearOutput = (
-            drivePID[0] * distanceError +
-            drivePID[1] * integralDistanceError +
-            drivePID[2] * derivativeDistanceError
-        )
-        prevDistanceError = distanceError
-        scaledXVel = linearOutput * (tempXVel / distanceError) if distanceError != 0 else 0
-        scaledYVel = linearOutput * (tempYVel / distanceError) if distanceError != 0 else 0
-        headingError = rotVel - self.heading
-        headingError = (headingError + 180) % 360 - 180  # Normalize to [-180, 180]
-        integralHeadingError = 0
-        derivativeHeadingError = 0
-        prevHeadingError = 0
-        integralHeadingError += headingError
-        derivativeHeadingError = headingError - prevHeadingError
-        rotationalOutput = (
-            turnPID[0] * headingError +
-            turnPID[1] * integralHeadingError +
-            turnPID[2] * derivativeHeadingError
-        )
-        prevHeadingError = headingError
-        self.motorFrontLeft.spin(FORWARD, scaledYVel + scaledXVel + rotationalOutput * rotationFactor)
-        self.motorFrontRight.spin(FORWARD, scaledYVel - scaledXVel - rotationalOutput * rotationFactor)
-        self.motorBackLeft.spin(FORWARD, scaledYVel - scaledXVel + rotationalOutput * rotationFactor)
-        self.motorBackRight.spin(FORWARD, scaledYVel + scaledXVel - rotationalOutput * rotationFactor)
+        if motorCorrectionConfig == None:
+            motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
+        else:
+            motorCorrectionConfig.units = _rotationUnits
+        self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
+    def moveLen(self, len, speed):
+        deg = 360 * ((len / wheelCircumference) * gear_ratio)
+        self.motorCorrector.setPassiveMode(False)
+        self.motorCorrector.correctMotors([deg, deg])
+        self.motorLeft.spin_for(FORWARD, deg, self.rotationUnits, speed, self.speedUnits, False)
+        self.motorRight.spin_for(FORWARD, deg, self.rotationUnits, speed, self.speedUnits, True)
+    def turnDeg(self, rotation, speed, pivotOffset = 0.0):
+        lenLeft = -(2 * math.pi * ((wheel_base / 2) + pivotOffset)) * (-rotation / 360)
+        lenRight = (2 * math.pi * ((wheel_base / 2) - pivotOffset)) * (-rotation / 360)
+        degLeft = 360 * ((lenLeft / wheelCircumference) * gear_ratio)
+        degRight = 360 * ((lenRight / wheelCircumference) * gear_ratio)
+        self.motorCorrector.setPassiveMode(False)
+        self.motorCorrector.correctMotors([degLeft, degRight])
+        if (degLeft > degRight):
+            self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed, self.speedUnits, False)
+            self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed * (degRight / degLeft), self.speedUnits, True)
+        else:
+            self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
+            self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
     def updateOdometry(self):
-        frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * wheelCircumference
-        frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * wheelCircumference
-        backLeftDistance = self.motorBackLeft.position(DEGREES) / 360.0 * wheelCircumference
-        backRightDistance = self.motorBackRight.position(DEGREES) / 360.0 * wheelCircumference
-        avgX = (frontLeftDistance - frontRightDistance + backLeftDistance - backRightDistance) / 4.0
-        avgY = (frontLeftDistance + frontRightDistance + backLeftDistance + backRightDistance) / 4.0
+        leftDistance = self.motorLeft.position(DEGREES) / 360.0 * wheelCircumference
+        rightDistance = self.motorRight.position(DEGREES) / 360.0 * wheelCircumference
+        avgX = (leftDistance - rightDistance) / 4.0
+        avgY = (leftDistance + rightDistance) / 4.0
         heading = self.gyro.heading(DEGREES)
         headingRadians = math.radians(heading)
         deltaX = avgX * math.cos(headingRadians) - avgY * math.sin(headingRadians)
@@ -235,270 +194,55 @@ class MecanumDrivebase (Subsystem):
         self.x += deltaX
         self.y += deltaY
         self.heading = self.gyro.heading(DEGREES)
-    def driveToPose(self, x, y, heading, tolerance=0.5):
-        self.driveDuration = 0
-        prevDistanceError = 0
-        prevHeadingError = 0
-        integralDistanceError = 0
-        integralHeadingError = 0
+    def driveCommand(self, leftAxis, rightAxis):
+        self.motorLeft.spin(FORWARD, leftAxis + rightAxis, self.speedUnits)
+        self.motorRight.spin(FORWARD, leftAxis - rightAxis, self.speedUnits)
+    def centerToObject(self):
+        objects = None
         while True:
-            deltaX = x - self.x
-            deltaY = y - self.y
-            distanceError = math.sqrt(deltaX**2 + deltaY**2)
-            headingError = heading - self.heading
-            headingError = (headingError + 180) % 360 - 180
-            if distanceError <= tolerance and abs(headingError) <= tolerance:
+            objects = self.vision.take_snapshot(vision_orange)
+            if len(objects) > 0:
                 break
-            integralDistanceError += distanceError
-            derivativeDistanceError = distanceError - prevDistanceError
-            positionOutput = (
-                drivePID[0] * distanceError +
-                drivePID[1] * integralDistanceError +
-                drivePID[2] * derivativeDistanceError
-            )
-            prevDistanceError = distanceError
-            integralHeadingError += headingError
-            derivativeHeadingError = headingError - prevHeadingError
-            headingOutput = (
-                turnPID[0] * headingError +
-                turnPID[1] * integralHeadingError +
-                turnPID[2] * derivativeHeadingError
-            )
-            prevHeadingError = headingError
-            angleToTarget = math.atan2(deltaY, deltaX)  # Angle to the target in radians
-            xVel = positionOutput * math.cos(angleToTarget)  # Scale speed by angle
-            yVel = positionOutput * math.sin(angleToTarget)  # Scale speed by angle
-            rotVel = headingOutput  # Use heading PID output for rotation
-            xVel = max(-200, min(200, xVel))
-            yVel = max(-200, min(200, yVel))
-            rotVel = max(-200, min(200, rotVel))
-            self.driveCommand(xVel, yVel, rotVel)
-            self.updateOdometry()
-    def calculateObjectPostion(self):
-        self.camera.take_snapshot(0)
-        largestObject = self.camera.largest_object()
-        if largestObject.exists:
-            if largestObject.width > 0:
-                distanceToSmallFruit = (smallFruitWidth / largestObject.width) * cameraFocalLength
-                distanceToLargeFruit = (largeFruitWidth / largestObject.width) * cameraFocalLength
-                angleToFruit = math.radians(largestObject.centerX - (largestObject.width / 2)) * cameraFOV
-                smallFruitX = self.x + distanceToSmallFruit * math.cos(math.radians(self.heading) + angleToFruit)
-                smallFruitY = self.y + distanceToSmallFruit * math.sin(math.radians(self.heading) + angleToFruit)
-                largeFruitX = self.x + distanceToLargeFruit * math.cos(math.radians(self.heading) + angleToFruit)
-                largeFruitY = self.y + distanceToLargeFruit * math.sin(math.radians(self.heading) + angleToFruit)
-                self.objectLocations.append((("small", smallFruitX, smallFruitY), ("large", largeFruitX, largeFruitY)))
-                self.removeRedundant()
-        wait(20)
-    def removeRedundant(self):
-        uniqueLocations = []
-        for fruit in self.objectLocations:
-            isDuplicate = False
-            for uniqueFruit in uniqueLocations:
-                distance = math.sqrt((fruit[1] - uniqueFruit[1])**2 + (fruit[2] - uniqueFruit[2])**2)
-                if distance < objectThreashold:
-                    isDuplicate = True
-                    break
-            if not isDuplicate:
-                uniqueLocations.append(fruit)
-        self.objectLocations = uniqueLocations
-    def zeroGyro(self):
-        self.gyro.set_heading(0, DEGREES)
-    def driveCommand(self, x, y, theta):
-        self.run(self.drive(x,y,theta))
-        self.currentCommand = None
-    def driveToPoseCommand(self, x, y, theta):
-        self.run(self.driveToPose(x,y,theta))
-        self.currentCommand = None
-    def zeroGyroCommand(self):
-        self.run(self.zeroGyro())
-        self.currentCommand = None
-class Arm (Subsystem):
-    def __init__(self, armmotor: Motor, pivotmotor: Motor, wristmotor: Motor):
-        self.armmotor = armmotor
-        self.pivotmotor = pivotmotor
-        self.wristmotor = wristmotor
-        self.armLength = 0
-        self.armAngle = 0
-        self.wristAngle = 0
-    def getLength(self):
-        return self.armLength
-    def setLength(self, length):
-        targetLength = self.clamp(length, minArmLength, maxArmLength)
-        kp, ki, kd = armPID
-        integral = 0
-        prevError = 0
+        x = objects[0].centerX
+        y = objects[0].centerY
+        correctedX = x + cameraXOffset
+        correctedY = y + cameraYOffset
+        self.motorLeft.spin(FORWARD, correctedX*0.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, -correctedX*0.8, self.speedUnits)
+    def stayDistanceFromObject(self):
+        objects = None
         while True:
-            currentLength = self.getLength()
-            error = targetLength - currentLength
-            if abs(error) < armTolerance:
+            objects = self.vision.take_snapshot(vision_orange)
+            if len(objects) > 0:
                 break
-            integral += error
-            derivative = error - prevError
-            output = kp * error + ki * integral + kd * derivative
-            self.armmotor.spin(FORWARD, output, PERCENT)
-            prevError = error
-        self.armmotor.stop()
-        self.armLength = self.armmotor.position(DEGREES) / armGearRatio
-    def setAngle(self, angle):
-        targetAngle = self.clamp(angle, minArmAngle, maxArmAngle)
-        kp, ki, kd = pivotPID
-        integral = 0
-        prevError = 0
+        viewedWidth = objects[0].width
+        widthChange = viewedWidth - 68
+        self.motorLeft.spin(FORWARD, (widthChange)*0.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, (widthChange)*0.8, self.speedUnits)
+    def lab(self):
         while True:
-            currentAngle = self.getAngle()
-            error = targetAngle - currentAngle
-            if abs(error) < pivotTolerance:
-                break
-            integral += error
-            derivative = error - prevError
-            output = kp * error + ki * integral + kd * derivative
-            self.pivotmotor.spin(FORWARD, output, PERCENT)
-            prevError = error
-        self.pivotmotor.stop()
-        self.armAngle = self.pivotmotor.position(DEGREES) / pivotGearRatio
-    def getAngle(self):
-        return self.armAngle
-    def getWristAngle(self):
-        return self.wristmotor.position(DEGREES) / wristGearRatio
-    def setWristAngle(self, angle):
-        targetAngle = self.clamp(angle, minWristAngle, maxWristAngle)
-        kp, ki, kd = wristPID
-        integral = 0
-        prevError = 0
-        while True:
-            currentAngle = self.getWristAngle()
-            error = targetAngle - currentAngle
-            if abs(error) < wristTolerance:
-                break
-            integral += error
-            derivative = error - prevError
-            output = kp * error + ki * integral + kd * derivative
-            self.wristmotor.spin(FORWARD, output, PERCENT)
-            prevError = error
-        self.wristmotor.stop()
-        self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
-    def toPosition(self, length, angle, wristAngle):
-        armLengthThread = Thread(lambda: self.setLength(length))
-        armAngleThead = Thread(lambda: self.setAngle(angle))
-        self.setWristAngle(wristAngle)
-    def clamp(self, value, min_value, max_value):
-        return max(min_value, min(value, max_value))
-    def toPositionCommand(self, length, angle, wristAngle):
-        self.run(self.toPosition(length, angle, wristAngle))
-        self.currentCommand = None
-class Intake (Subsystem):
-    def __init__(self, intakemotor: Motor):
-        self.intakemotor = intakemotor
-        self.escapeLoop = False
-    def runIntake(self, direction):
-        if direction == "forward":
-            self.intakemotor.spin(FORWARD)
-        else:
-            self.intakemotor.spin(REVERSE)
-    def stopIntake(self):
-        self.escapeLoop = True
-        self.intakemotor.stop()
-        self.escapeLoop = False
-    def intakeUntilCurrent(self):
-        while self.intakemotor.current() < 0.5 or self.escapeLoop == False:
-            self.runIntake("reverse")
-        self.stopIntake()
-    def intakeUntilCurrentCommand(self):
-        self.run(self.intakeUntilCurrent())
-        self.currentCommand = None
-    def stopIntakeCommand(self):
-        self.run(self.stopIntake())
-        self.currentCommand = None
-class Forks(Subsystem):
-    def __init__(self, forkmotor: Motor):
-        self.forkmotor = forkmotor
-        self.forksDeployed = False
-        self.basketContains = []
-        self.nextSlot = 0,0
-        self.currentSlot = 0
-    def deployForks(self):
-        self.forkmotor.spin_for(FORWARD, 90 * forksGearRatio, DEGREES)
-        self.forksDeployed = True
-    def retractForks(self):
-        self.forkmotor.spin_for(FORWARD, -90 * forksGearRatio, DEGREES)
-        self.forksDeployed = False
-    def toggleForks(self):
-        if self.forksDeployed:
-            self.retractForks()
-        else:
-            self.deployForks()
-        self.currentCommand = None
-    def addObject(self, row, column):
-        if len(self.basketContains) < row-1:
-            if (column == 1):
-                self.basketContains.append((1, 0))
-            else:
-                self.basketContains.append((0, 1))
-        else:
-            if (column == 1):
-                self.basketContains[row-1] = (1, 0)
-            else:
-                self.basketContains[row-1] = (0, 1)
-        self.nextSlot = self.getLeftestSlot()
-    def getLeftestSlot(self):
-        for i in range(len(self.basketContains)):
-            for j in range(len(self.basketContains)):
-                if self.basketContains[i][j] == 0:
-                    return i+1,j+1
-        return -1,-1
-    def retractForksCommand(self):
-        self.run(self.retractForks())
-        self.currentCommand = None
-    def toggleForksCommand(self):
-        self.run(self.toggleForks())
-        self.currentCommand = None
-def setSubsystems(driveBase: MecanumDrivebase, arm: Arm, intake: Intake, forks: Forks):
-    global driveSub, armSub, intakeSub, forksSub
+            self.centerToObject()
+            self.stayDistanceFromObject()
+            wait(20)
+def setSubsystems(driveBase: TankDrivebase):
+    global driveSub
     driveSub = driveBase
-    armSub = arm
-    intakeSub = intake
-    forksSub = forks
-def grabFruit(fruitPose, length, isLowFruit):
-    if isLowFruit:
-        armSub.run(armSub.toPositionCommand(length, lowFruitAngle, lowFruitWristAngle))
-    else:
-        armSub.run(armSub.toPositionCommand(length, highFruitAngle, highFruitWristAngle))
-    intakeSub.run(intakeSub.intakeUntilCurrentCommand())
-    armLength = armSub.getLength()  # Get the current arm length
-    armAngle = math.radians(armSub.getAngle())  # Convert arm angle to radians
-    robotHeading = math.radians(driveSub.heading) # uses the heading in radians
-    offsetX = armLength * math.cos(robotHeading) # Get the x offset of the arm relative to the robot
-    offsetY = armLength * math.sin(robotHeading) # Get the y offset of the arm relative to the robot
-    adjustedX = fruitPose[0] - offsetX
-    adjustedY = fruitPose[1] - offsetY
-    deltaX = fruitPose[0] - driveSub.x  # get the change in x position
-    deltaY = fruitPose[1] - driveSub.y  # get the change in y position
-    targetHeading = math.degrees(math.atan2(deltaY, deltaX))  # find the angle the robot neeeds to turn to face the fruit
-    driveSub.run(driveSub.driveToPoseCommand(adjustedX, adjustedY, targetHeading))
-def stowArm():
-    intakeSub.run(intakeSub.stopIntakeCommand())
-    armSub.run(armSub.toPositionCommand(minArmLength, minArmAngle, minWristAngle))
 brain=Brain()
-fl_motor = Motor(Ports.PORT1, 18_1, True)
-fr_motor = Motor(Ports.PORT9, 18_1, False)
-bl_motor = Motor(Ports.PORT2, 18_1, True)
-br_motor = Motor(Ports.PORT10, 18_1, False)
-arm_motor = Motor(Ports.PORT6, 18_1, False)
-wrist_motor = Motor(Ports.PORT11, 18_1, False)
-pivot_motor = Motor(Ports.PORT7, 18_1, False)
-intake_motor = Motor(Ports.PORT5, 18_1, False)
-fork_motor = Motor(Ports.PORT8, 18_1, False)
+l_motor = Motor(Ports.PORT1, 18_1, True)
+r_motor = Motor(Ports.PORT10, 18_1, False)
 inertial = Inertial(Ports.PORT3)
-camera = Vision(Ports.PORT4, 50)
-drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
-intake = Intake(intake_motor)
-forks = Forks(fork_motor)
-arm = Arm(arm_motor, pivot_motor, wrist_motor)
-setSubsystems(drivebase, arm, intake, forks)
+camera = AiVision(Ports.PORT9, vision_orange)
+drivebase = TankDrivebase(l_motor, r_motor, inertial, camera)
 controller = Controller()
-drivebase.setDefaultCommand(lambda: drivebase.driveCommand(controller.axis3, controller.axis4, controller.axis2))
-arm.setDefaultCommand(lambda: arm.toPositionCommand(0, 0, 0))
-intake.setDefaultCommand(lambda: intake.stopIntakeCommand())
-controller.buttonA.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 0)))
-controller.buttonB.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 90)))
-controller.buttonX.pressed(lambda: drivebase.run(drivebase.zeroGyroCommand()))
+setSubsystems(drivebase)
+def visionFunc():
+    while True:
+        brain.screen.print_at("running", x=0, y=80)
+        objects = camera.take_snapshot(vision_orange)
+        if len(objects) > 0:
+            brain.screen.print_at("Object found", x=0, y=20)
+            brain.screen.print_at("X: " + str(objects[0].centerX+cameraXOffset), x=0, y=40)
+            brain.screen.print_at("Y: " + str(objects[0].centerY+cameraYOffset), x=0, y=60)
+            brain.screen.render()
+        wait(20)
+drivebase.lab()

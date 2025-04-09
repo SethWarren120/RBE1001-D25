@@ -6,7 +6,7 @@ from Subsystems.Drivebase.drivebaseMotorCorrector import *
 from Subsystems.subsystem import Subsystem
 
 class TankDrivebase (Subsystem):
-    def __init__(self, _motorLeft, _motorRight, gyro, vision,
+    def __init__(self, _motorLeft, _motorRight, gyro: Inertial, vision: AiVision,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
@@ -21,7 +21,7 @@ class TankDrivebase (Subsystem):
         self.heading = 0.0
 
         odometryThread = Thread(self.updateOdometry)
-        
+
         if motorCorrectionConfig == None:
             motorCorrectionConfig = DrivebaseMotorCorrectionProfile.Disabled(_rotationUnits)
         else:
@@ -73,8 +73,41 @@ class TankDrivebase (Subsystem):
         self.heading = self.gyro.heading(DEGREES)
 
     def driveCommand(self, leftAxis, rightAxis):
-        speed = leftAxis.position()
-        turning = rightAxis.position()
+        self.motorLeft.spin(FORWARD, leftAxis + rightAxis, self.speedUnits)
+        self.motorRight.spin(FORWARD, leftAxis - rightAxis, self.speedUnits)
+    
 
-        self.motorLeft.spin(FORWARD, speed + turning, self.speedUnits)
-        self.motorRight.spin(FORWARD, speed - turning, self.speedUnits)
+    def centerToObject(self):
+        objects = None
+        while True:
+            objects = self.vision.take_snapshot(vision_orange)
+            if len(objects) > 0:
+                break
+
+        x = objects[0].centerX
+        y = objects[0].centerY
+
+        correctedX = x + cameraXOffset
+        correctedY = y + cameraYOffset
+
+        self.motorLeft.spin(FORWARD, correctedX*0.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, -correctedX*0.8, self.speedUnits)
+
+    def stayDistanceFromObject(self):
+        objects = None
+        while True:
+            objects = self.vision.take_snapshot(vision_orange)
+            if len(objects) > 0:
+                break
+        
+        viewedWidth = objects[0].width
+        widthChange = viewedWidth - 68
+
+        self.motorLeft.spin(FORWARD, (widthChange)*0.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, (widthChange)*0.8, self.speedUnits)
+    
+    def lab(self):
+        while True:
+            self.centerToObject()
+            self.stayDistanceFromObject()
+            wait(20)

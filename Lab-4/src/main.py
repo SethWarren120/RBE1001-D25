@@ -15,19 +15,34 @@ from commands import *
 
 brain=Brain()
 
-fl_motor = Motor(Ports.PORT1, 18_1, True)
-fr_motor = Motor(Ports.PORT9, 18_1, False)
-bl_motor = Motor(Ports.PORT2, 18_1, True)
-br_motor = Motor(Ports.PORT10, 18_1, False)
-
+l_motor = Motor(Ports.PORT1, 18_1, True)
+r_motor = Motor(Ports.PORT10, 18_1, False)
 inertial = Inertial(Ports.PORT3)
+camera = AiVision(Ports.PORT9, vision_orange)
 
-camera = Vision(Ports.PORT4, 50)
-
-drivebase = TankDrivebase(fl_motor, fr_motor, inertial, camera)
-
-setSubsystems(drivebase)
+drivebase = TankDrivebase(l_motor, r_motor, inertial, camera)
 
 controller = Controller()
 
-drivebase.setDefaultCommand(lambda: drivebase.driveCommand(controller.axis3, controller.axis2))
+setSubsystems(drivebase)
+
+# drivebase.setDefaultCommand(lambda: drivebase.driveCommand(controller.axis3, controller.axis2))
+
+def visionFunc():
+    while True:
+        brain.screen.print_at("running", x=0, y=80)
+        objects = camera.take_snapshot(vision_orange)
+        if len(objects) > 0:
+            brain.screen.print_at("Object found", x=0, y=20)
+            brain.screen.print_at("X: " + str(objects[0].centerX+cameraXOffset), x=0, y=40)
+            brain.screen.print_at("Y: " + str(objects[0].centerY+cameraYOffset), x=0, y=60)
+            brain.screen.render()
+        
+        wait(20)
+
+# visionThread = Thread(visionFunc)
+
+# drivebase.run(drivebase.centerToObject())
+# drivebase.centerToObject()
+
+drivebase.lab()

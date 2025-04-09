@@ -1,4 +1,5 @@
 import math
+from vex import *
 
 #drive constants
 wheelDiameter = 4.0
@@ -13,46 +14,18 @@ drivePID = [1,0,0]
 turnPID = [1,0,0]
 
 #vision constants
-cameraFocalLength = 2.5 #inches
-cameraFOV = 60 #degrees
+#x is forward, y is left, z is up
+vision_orange = Colordesc(1,245,134,89,5,0.17)
+cameraOffset = [0, 0, 0] #inches
+cameraFOV = 75 #degrees
+
+cameraXOffset = -320/2
+cameraYOffset = -240/2
 
 fruitHeight1 = 5 #inches
 fruitHeight2 = 10 #inches
 
-smallFruitWidth = 2.5 #inches
+smallFruitWidth = 2 + 3/8 #inches
 largeFruitWidth = 5.5 #inches
 
 objectThreashold = 5
-
-#roller constants
-rollerDiameter = 2.5 #inches
-rollerGearRatio = 5
-forksGearRatio = 5
-
-#arm constants
-lowFruitHeight = 5 #inches
-lowFruitAngle = 45 #degrees
-highFruitHeight = 10 #inches
-highFruitAngle = 90 #degrees
-lowFruitWristAngle = 5 #degrees
-highFruitWristAngle = 10 #degrees
-
-minArmLength = 0 #inches
-maxArmLength = 20 #inches
-
-minArmAngle = 0 #degrees
-maxArmAngle = 180 #degrees
-
-minWristAngle = 0 #degrees
-maxWristAngle = 180 #degrees
-
-armGearRatio = 5
-pivotGearRatio = 5
-wristGearRatio = 5
-
-armPID = [0,0,0]
-armTolerance = 1
-pivotPID = [0,0,0]
-pivotTolerance = 1
-wristPID = [0,0,0]
-wristTolerance = 1
