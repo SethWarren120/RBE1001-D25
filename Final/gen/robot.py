@@ -155,16 +155,22 @@ class Subsystem():
     def __init__(self):
         self.defaultCommand = None
         self.currentCommand = None
-        self.periodic()
+        self.commandList = []
+        periodicThread  = Thread(self.periodic)
     def setDefaultCommand(self, command: function):
         self.defaultCommand = command
-    def run(self, command):
-        self.currentCommand = command
-        runThread = Thread(command)
+    def run(self, command, priority: bool):
+        if priority:
+            self.commandList.insert(0, command)
+        else:
+            self.commandList.append(command)
     def periodic(self):
         while True:
-            if (self.currentCommand == None and self.defaultCommand != None):
-                self.run(self.defaultCommand)
+            if (self.commandList.count == 0):
+                if (self.defaultCommand != None):
+                    self.commandList.append(self.defaultCommand)
+            self.currentCommand = self.commandList.pop(0)
+            self.currentCommand()
             wait(20)
 import math
 class MecanumDrivebase (Subsystem):
@@ -304,13 +310,13 @@ class MecanumDrivebase (Subsystem):
     def zeroGyro(self):
         self.gyro.set_heading(0, DEGREES)
     def driveCommand(self, x, y, theta):
-        self.run(self.drive(x,y,theta))
+        self.run(self.drive(x,y,theta), False)
         self.currentCommand = None
     def driveToPoseCommand(self, x, y, theta):
-        self.run(self.driveToPose(x,y,theta))
+        self.run(self.driveToPose(x,y,theta), False)
         self.currentCommand = None
     def zeroGyroCommand(self):
-        self.run(self.zeroGyro())
+        self.run(self.zeroGyro(), False)
         self.currentCommand = None
 class Arm (Subsystem):
     def __init__(self, armmotor: Motor, pivotmotor: Motor, wristmotor: Motor):
@@ -379,12 +385,12 @@ class Arm (Subsystem):
         self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
     def toPosition(self, length, angle, wristAngle):
         armLengthThread = Thread(lambda: self.setLength(length))
-        armAngleThead = Thread(lambda: self.setAngle(angle))
+        armAngleThread = Thread(lambda: self.setAngle(angle))
         self.setWristAngle(wristAngle)
     def clamp(self, value, min_value, max_value):
         return max(min_value, min(value, max_value))
     def toPositionCommand(self, length, angle, wristAngle):
-        self.run(self.toPosition(length, angle, wristAngle))
+        self.run(self.toPosition(length, angle, wristAngle), False)
         self.currentCommand = None
 class Intake (Subsystem):
     def __init__(self, intakemotor: Motor):
@@ -404,10 +410,10 @@ class Intake (Subsystem):
             self.runIntake("reverse")
         self.stopIntake()
     def intakeUntilCurrentCommand(self):
-        self.run(self.intakeUntilCurrent())
+        self.run(self.intakeUntilCurrent(), False)
         self.currentCommand = None
     def stopIntakeCommand(self):
-        self.run(self.stopIntake())
+        self.run(self.stopIntake(), False)
         self.currentCommand = None
 class Forks(Subsystem):
     def __init__(self, forkmotor: Motor):
@@ -447,10 +453,10 @@ class Forks(Subsystem):
                     return i+1,j+1
         return -1,-1
     def retractForksCommand(self):
-        self.run(self.retractForks())
+        self.run(self.retractForks(), False)
         self.currentCommand = None
     def toggleForksCommand(self):
-        self.run(self.toggleForks())
+        self.run(self.toggleForks(), False)
         self.currentCommand = None
 def setSubsystems(driveBase: MecanumDrivebase, arm: Arm, intake: Intake, forks: Forks):
     global driveSub, armSub, intakeSub, forksSub
@@ -460,10 +466,10 @@ def setSubsystems(driveBase: MecanumDrivebase, arm: Arm, intake: Intake, forks: 
     forksSub = forks
 def grabFruit(fruitPose, length, isLowFruit):
     if isLowFruit:
-        armSub.run(armSub.toPositionCommand(length, lowFruitAngle, lowFruitWristAngle))
+        armSub.run(armSub.toPositionCommand(length, lowFruitAngle, lowFruitWristAngle), False)
     else:
-        armSub.run(armSub.toPositionCommand(length, highFruitAngle, highFruitWristAngle))
-    intakeSub.run(intakeSub.intakeUntilCurrentCommand())
+        armSub.run(armSub.toPositionCommand(length, highFruitAngle, highFruitWristAngle), False)
+    intakeSub.run(intakeSub.intakeUntilCurrentCommand(), False)
     armLength = armSub.getLength()  # Get the current arm length
     armAngle = math.radians(armSub.getAngle())  # Convert arm angle to radians
     robotHeading = math.radians(driveSub.heading) # uses the heading in radians
@@ -474,10 +480,10 @@ def grabFruit(fruitPose, length, isLowFruit):
     deltaX = fruitPose[0] - driveSub.x  # get the change in x position
     deltaY = fruitPose[1] - driveSub.y  # get the change in y position
     targetHeading = math.degrees(math.atan2(deltaY, deltaX))  # find the angle the robot neeeds to turn to face the fruit
-    driveSub.run(driveSub.driveToPoseCommand(adjustedX, adjustedY, targetHeading))
+    driveSub.run(driveSub.driveToPoseCommand(adjustedX, adjustedY, targetHeading), False)
 def stowArm():
-    intakeSub.run(intakeSub.stopIntakeCommand())
-    armSub.run(armSub.toPositionCommand(minArmLength, minArmAngle, minWristAngle))
+    intakeSub.run(intakeSub.stopIntakeCommand(), False)
+    armSub.run(armSub.toPositionCommand(minArmLength, minArmAngle, minWristAngle), False)
 brain=Brain()
 fl_motor = Motor(Ports.PORT1, 18_1, True)
 fr_motor = Motor(Ports.PORT9, 18_1, False)
@@ -499,6 +505,6 @@ controller = Controller()
 drivebase.setDefaultCommand(lambda: drivebase.driveCommand(controller.axis3, controller.axis4, controller.axis2))
 arm.setDefaultCommand(lambda: arm.toPositionCommand(0, 0, 0))
 intake.setDefaultCommand(lambda: intake.stopIntakeCommand())
-controller.buttonA.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 0)))
-controller.buttonB.pressed(lambda: drivebase.run(drivebase.driveToPoseCommand(0, 0, 90)))
-controller.buttonX.pressed(lambda: drivebase.run(drivebase.zeroGyroCommand()))
+controller.buttonA.pressed(lambda: drivebase.driveToPoseCommand(0, 0, 0))
+controller.buttonB.pressed(lambda: drivebase.driveToPoseCommand(0, 0, 90))
+controller.buttonX.pressed(lambda: drivebase.zeroGyroCommand())

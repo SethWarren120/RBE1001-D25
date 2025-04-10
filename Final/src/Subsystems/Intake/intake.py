@@ -24,9 +24,9 @@ class Intake (Subsystem):
         self.stopIntake()
 
     def intakeUntilCurrentCommand(self):
-        self.run(self.intakeUntilCurrent())
+        self.run(self.intakeUntilCurrent(), False)
         self.currentCommand = None
 
     def stopIntakeCommand(self):
-        self.run(self.stopIntake())
+        self.run(self.stopIntake(), False)
         self.currentCommand = None

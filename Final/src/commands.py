@@ -15,10 +15,10 @@ def setSubsystems(driveBase: MecanumDrivebase, arm: Arm, intake: Intake, forks: 
 
 def grabFruit(fruitPose, length, isLowFruit):
     if isLowFruit:
-        armSub.run(armSub.toPositionCommand(length, lowFruitAngle, lowFruitWristAngle))
+        armSub.run(armSub.toPositionCommand(length, lowFruitAngle, lowFruitWristAngle), False)
     else:
-        armSub.run(armSub.toPositionCommand(length, highFruitAngle, highFruitWristAngle))
-    intakeSub.run(intakeSub.intakeUntilCurrentCommand())
+        armSub.run(armSub.toPositionCommand(length, highFruitAngle, highFruitWristAngle), False)
+    intakeSub.run(intakeSub.intakeUntilCurrentCommand(), False)
     
     armLength = armSub.getLength()  # Get the current arm length
     armAngle = math.radians(armSub.getAngle())  # Convert arm angle to radians
@@ -35,8 +35,8 @@ def grabFruit(fruitPose, length, isLowFruit):
     deltaY = fruitPose[1] - driveSub.y  # get the change in y position
     targetHeading = math.degrees(math.atan2(deltaY, deltaX))  # find the angle the robot neeeds to turn to face the fruit
     
-    driveSub.run(driveSub.driveToPoseCommand(adjustedX, adjustedY, targetHeading))
+    driveSub.run(driveSub.driveToPoseCommand(adjustedX, adjustedY, targetHeading), False)
 
 def stowArm():
-    intakeSub.run(intakeSub.stopIntakeCommand())
-    armSub.run(armSub.toPositionCommand(minArmLength, minArmAngle, minWristAngle))
+    intakeSub.run(intakeSub.stopIntakeCommand(), False)
+    armSub.run(armSub.toPositionCommand(minArmLength, minArmAngle, minWristAngle), False)

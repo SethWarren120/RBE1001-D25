@@ -119,12 +119,12 @@ class Arm (Subsystem):
 
     def toPosition(self, length, angle, wristAngle):
         armLengthThread = Thread(lambda: self.setLength(length))
-        armAngleThead = Thread(lambda: self.setAngle(angle))
+        armAngleThread = Thread(lambda: self.setAngle(angle))
         self.setWristAngle(wristAngle)
 
     def clamp(self, value, min_value, max_value):
         return max(min_value, min(value, max_value))
     
     def toPositionCommand(self, length, angle, wristAngle):
-        self.run(self.toPosition(length, angle, wristAngle))
+        self.run(self.toPosition(length, angle, wristAngle), False)
         self.currentCommand = None

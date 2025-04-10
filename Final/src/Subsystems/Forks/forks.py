@@ -48,9 +48,9 @@ class Forks(Subsystem):
         return -1,-1
     
     def retractForksCommand(self):
-        self.run(self.retractForks())
+        self.run(self.retractForks(), False)
         self.currentCommand = None
-        
+
     def toggleForksCommand(self):
-        self.run(self.toggleForks())
+        self.run(self.toggleForks(), False)
         self.currentCommand = None

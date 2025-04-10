@@ -207,13 +207,13 @@ class MecanumDrivebase (Subsystem):
         self.gyro.set_heading(0, DEGREES)
 
     def driveCommand(self, x, y, theta):
-        self.run(self.drive(x,y,theta))
+        self.run(self.drive(x,y,theta), False)
         self.currentCommand = None
 
     def driveToPoseCommand(self, x, y, theta):
-        self.run(self.driveToPose(x,y,theta))
+        self.run(self.driveToPose(x,y,theta), False)
         self.currentCommand = None
 
     def zeroGyroCommand(self):
-        self.run(self.zeroGyro())
+        self.run(self.zeroGyro(), False)
         self.currentCommand = None
