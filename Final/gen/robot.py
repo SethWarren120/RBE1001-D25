@@ -169,8 +169,9 @@ class Subsystem():
             if (self.commandList.count == 0):
                 if (self.defaultCommand != None):
                     self.commandList.append(self.defaultCommand)
-            self.currentCommand = self.commandList.pop(0)
-            self.currentCommand()
+            else:
+                self.currentCommand = self.commandList.pop(0)
+                self.currentCommand()
             wait(20)
 import math
 class MecanumDrivebase (Subsystem):
