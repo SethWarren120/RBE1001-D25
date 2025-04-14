@@ -3,9 +3,8 @@ from vex import *
 
 from constants import *
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
-from Subsystems.subsystem import Subsystem
 
-class TankDrivebase (Subsystem):
+class TankDrivebase ():
     #initalization
     def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, vision: AiVision,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
@@ -122,10 +121,40 @@ class TankDrivebase (Subsystem):
         self.motorLeft.spin(FORWARD, widthChange*0.8, self.speedUnits)
         self.motorRight.spin(FORWARD, widthChange*0.8, self.speedUnits)
     
+    def objectDriveCombined(self):
+        objects = None
+        #loops until it finds an object
+        while True:
+            objects = self.vision.take_snapshot(vision_orange)
+            if len(objects) > 0:
+                break
+        
+        #gets the center x and y of the first object
+        x = objects[0].centerX
+        y = objects[0].centerY
+
+        #the camera outputs with 0,0 being the top right of the camera
+        #this code moves 0,0 to the center of the camera
+        correctedX = x + cameraXOffset
+        correctedY = y + cameraYOffset
+        
+        #gets the width of the first object
+        viewedWidth = objects[0].width
+        #68 is the desired width of the object at the desired distance
+        #gets the change in width that the robot needs to go
+        widthChange = viewedWidth - 68
+
+        #drives the robot forward or backwards to get the object to the desired width
+        self.motorLeft.spin(FORWARD, correctedX*0.8+widthChange*1.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, -correctedX*0.8+widthChange*1.8, self.speedUnits)
+
     def lab(self):
         #loops forever
         while True:
             #runs the center then runs the stay distance function
-            self.centerToObject()
+            # self.centerToObject()
+            # wait(20)
             # self.stayDistanceFromObject()
+            # wait(20)
+            self.objectDriveCombined()
             wait(20)
