@@ -20,14 +20,12 @@ r_motor = Motor(Ports.PORT10, 18_1, False)
 inertial = Inertial(Ports.PORT3)
 camera = AiVision(Ports.PORT9, vision_orange)
 
+#initalizes the tank drivetrain subsystem with the motors, inertial sensor, and camera
 drivebase = TankDrivebase(l_motor, r_motor, inertial, camera)
-
-controller = Controller()
 
 setSubsystems(drivebase)
 
-# drivebase.setDefaultCommand(lambda: drivebase.driveCommand(controller.axis3, controller.axis2))
-
+#printing for debugging
 def visionFunc():
     while True:
         brain.screen.print_at("running", x=0, y=80)
@@ -39,10 +37,5 @@ def visionFunc():
             brain.screen.render()
         
         wait(20)
-
-# visionThread = Thread(visionFunc)
-
-# drivebase.run(drivebase.centerToObject())
-# drivebase.centerToObject()
 
 drivebase.lab()

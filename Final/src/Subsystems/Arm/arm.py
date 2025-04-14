@@ -127,4 +127,3 @@ class Arm (Subsystem):
     
     def toPositionCommand(self, length, angle, wristAngle):
         self.run(self.toPosition(length, angle, wristAngle), False)
-        self.currentCommand = None

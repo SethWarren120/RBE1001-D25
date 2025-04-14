@@ -31,7 +31,8 @@ fork_motor = Motor(Ports.PORT8, 18_1, False)
 
 inertial = Inertial(Ports.PORT3)
 
-camera = Vision(Ports.PORT4, 50)
+camera = AiVision(Ports.PORT4, 50)
+camera.start_awb()
 
 drivebase = MecanumDrivebase(fl_motor, fr_motor, bl_motor, br_motor, inertial, camera)
 intake = Intake(intake_motor)
@@ -49,5 +50,3 @@ intake.setDefaultCommand(lambda: intake.stopIntakeCommand())
 controller.buttonA.pressed(lambda: drivebase.driveToPoseCommand(0, 0, 0))
 controller.buttonB.pressed(lambda: drivebase.driveToPoseCommand(0, 0, 90))
 controller.buttonX.pressed(lambda: drivebase.zeroGyroCommand())
-# grabFruit((0, 0), lowFruitHeight)
-# drivebase.drive(controller.axis3, controller.axis4, controller.axis2)

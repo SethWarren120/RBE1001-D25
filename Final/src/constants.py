@@ -1,4 +1,5 @@
 import math
+from vex import *
 
 #drive constants
 wheelDiameter = 4.0
@@ -13,8 +14,16 @@ drivePID = [1,0,0]
 turnPID = [1,0,0]
 
 #vision constants
-cameraFocalLength = 2.5 #inches
-cameraFOV = 60 #degrees
+#x,y,z,roll,pitch,yaw
+#x is forward, y is left, z is up
+vision_orange = Colordesc(1,245,134,89,5,0.17)
+cameraOffset = [0, 0, 0, 0, 0, 0] #inches
+cameraFOV = 75 #degrees
+
+cameraWidth = 320
+cameraHeight = 240
+cameraXOffset = -cameraWidth/2
+cameraYOffset = -cameraHeight/2
 
 fruitHeight1 = 5 #inches
 fruitHeight2 = 10 #inches
@@ -23,6 +32,26 @@ smallFruitWidth = 2.5 #inches
 largeFruitWidth = 5.5 #inches
 
 objectThreashold = 5
+
+#0, 0, 0 is the center of the field facing the ramp
+#tag constants
+#x y angle (inches, degrees)
+tag1 = [0,0,0]
+tag2 = [0,0,0]
+tag3 = [0,0,0]
+tag4 = [0,0,0]
+tagLocations = [tag1,
+                tag2,
+                tag3,
+                tag4]
+
+#x y (inches)
+post1Location = [0,0]
+post2Location = [0,0]
+post3Location = [0,0]
+posts = [post1Location,
+          post2Location,
+          post3Location]
 
 #roller constants
 rollerDiameter = 2.5 #inches

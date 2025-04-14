@@ -134,19 +134,26 @@ class Subsystem():
     def __init__(self):
         self.defaultCommand = None
         self.currentCommand = None
-        self.periodic()
+        self.commandList = []
+        periodicThread  = Thread(self.periodic)
     def setDefaultCommand(self, command: function):
         self.defaultCommand = command
-    def run(self, command):
-        self.currentCommand = command
-        runThread = Thread(command)
+    def run(self, command, priority: bool):
+        if priority:
+            self.commandList.insert(0, command)
+        else:
+            self.commandList.append(command)
     def periodic(self):
         while True:
-            if (self.currentCommand == None and self.defaultCommand != None):
-                self.run(self.defaultCommand)
+            if (self.commandList.count == 0):
+                if (self.defaultCommand != None):
+                    self.commandList.append(self.defaultCommand)
+            else:
+                self.currentCommand = self.commandList.pop(0)
+                self.currentCommand()
             wait(20)
 class TankDrivebase (Subsystem):
-    def __init__(self, _motorLeft, _motorRight, gyro: Inertial, vision: AiVision,
+    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, vision: AiVision,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
@@ -217,12 +224,11 @@ class TankDrivebase (Subsystem):
                 break
         viewedWidth = objects[0].width
         widthChange = viewedWidth - 68
-        self.motorLeft.spin(FORWARD, (widthChange)*0.8, self.speedUnits)
-        self.motorRight.spin(FORWARD, (widthChange)*0.8, self.speedUnits)
+        self.motorLeft.spin(FORWARD, widthChange*0.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, widthChange*0.8, self.speedUnits)
     def lab(self):
         while True:
             self.centerToObject()
-            self.stayDistanceFromObject()
             wait(20)
 def setSubsystems(driveBase: TankDrivebase):
     global driveSub
@@ -233,7 +239,6 @@ r_motor = Motor(Ports.PORT10, 18_1, False)
 inertial = Inertial(Ports.PORT3)
 camera = AiVision(Ports.PORT9, vision_orange)
 drivebase = TankDrivebase(l_motor, r_motor, inertial, camera)
-controller = Controller()
 setSubsystems(drivebase)
 def visionFunc():
     while True:

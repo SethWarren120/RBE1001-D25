@@ -6,7 +6,8 @@ from Subsystems.Drivebase.drivebaseMotorCorrector import *
 from Subsystems.subsystem import Subsystem
 
 class TankDrivebase (Subsystem):
-    def __init__(self, _motorLeft, _motorRight, gyro: Inertial, vision: AiVision,
+    #initalization
+    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, vision: AiVision,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
@@ -29,6 +30,7 @@ class TankDrivebase (Subsystem):
 
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
 
+    #lab 1 move code
     def moveLen(self, len, speed):
         deg = 360 * ((len / wheelCircumference) * gear_ratio)
 
@@ -38,6 +40,7 @@ class TankDrivebase (Subsystem):
         self.motorLeft.spin_for(FORWARD, deg, self.rotationUnits, speed, self.speedUnits, False)
         self.motorRight.spin_for(FORWARD, deg, self.rotationUnits, speed, self.speedUnits, True)
 
+    #lab 1 turn code
     def turnDeg(self, rotation, speed, pivotOffset = 0.0):
         lenLeft = -(2 * math.pi * ((wheel_base / 2) + pivotOffset)) * (-rotation / 360)
         lenRight = (2 * math.pi * ((wheel_base / 2) - pivotOffset)) * (-rotation / 360)
@@ -55,6 +58,7 @@ class TankDrivebase (Subsystem):
             self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
 
+    #experimental odometry code
     def updateOdometry(self):
         leftDistance = self.motorLeft.position(DEGREES) / 360.0 * wheelCircumference
         rightDistance = self.motorRight.position(DEGREES) / 360.0 * wheelCircumference
@@ -72,42 +76,56 @@ class TankDrivebase (Subsystem):
         self.y += deltaY
         self.heading = self.gyro.heading(DEGREES)
 
+    #drive command using joysticks
     def driveCommand(self, leftAxis, rightAxis):
         self.motorLeft.spin(FORWARD, leftAxis + rightAxis, self.speedUnits)
         self.motorRight.spin(FORWARD, leftAxis - rightAxis, self.speedUnits)
     
-
+    #uses the camera to center the robot on an object
     def centerToObject(self):
         objects = None
-        while True:
-            objects = self.vision.take_snapshot(vision_orange)
-            if len(objects) > 0:
-                break
-
-        x = objects[0].centerX
-        y = objects[0].centerY
-
-        correctedX = x + cameraXOffset
-        correctedY = y + cameraYOffset
-
-        self.motorLeft.spin(FORWARD, correctedX*0.8, self.speedUnits)
-        self.motorRight.spin(FORWARD, -correctedX*0.8, self.speedUnits)
-
-    def stayDistanceFromObject(self):
-        objects = None
+        #loops until it finds an object
         while True:
             objects = self.vision.take_snapshot(vision_orange)
             if len(objects) > 0:
                 break
         
+        #gets the center x and y of the first object
+        x = objects[0].centerX
+        y = objects[0].centerY
+
+        #the camera outputs with 0,0 being the top right of the camera
+        #this code moves 0,0 to the center of the camera
+        correctedX = x + cameraXOffset
+        correctedY = y + cameraYOffset
+
+        #drives the wheels to get the object to the center of the camera
+        self.motorLeft.spin(FORWARD, correctedX*0.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, -correctedX*0.8, self.speedUnits)
+
+    #uses the camera to stay a certain distance from an object
+    def stayDistanceFromObject(self):
+        objects = None
+        while True:
+            #loops until it finds an object
+            objects = self.vision.take_snapshot(vision_orange)
+            if len(objects) > 0:
+                break
+        
+        #gets the width of the first object
         viewedWidth = objects[0].width
+        #68 is the desired width of the object at the desired distance
+        #gets the change in width that the robot needs to go
         widthChange = viewedWidth - 68
 
-        self.motorLeft.spin(FORWARD, (widthChange)*0.8, self.speedUnits)
-        self.motorRight.spin(FORWARD, (widthChange)*0.8, self.speedUnits)
+        #drives the robot forward or backwards to get the object to the desired width
+        self.motorLeft.spin(FORWARD, widthChange*0.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, widthChange*0.8, self.speedUnits)
     
     def lab(self):
+        #loops forever
         while True:
+            #runs the center then runs the stay distance function
             self.centerToObject()
-            self.stayDistanceFromObject()
+            # self.stayDistanceFromObject()
             wait(20)

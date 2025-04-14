@@ -24,7 +24,6 @@ class Forks(Subsystem):
             self.retractForks()
         else:
             self.deployForks()
-        self.currentCommand = None
 
     def addObject(self, row, column):
         if len(self.basketContains) < row-1:
@@ -49,8 +48,6 @@ class Forks(Subsystem):
     
     def retractForksCommand(self):
         self.run(self.retractForks(), False)
-        self.currentCommand = None
 
     def toggleForksCommand(self):
         self.run(self.toggleForks(), False)
-        self.currentCommand = None
