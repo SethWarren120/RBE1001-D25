@@ -1,8 +1,7 @@
 from vex import *
 from constants import *
-from Subsystems.subsystem import *
 
-class Forks(Subsystem):
+class Forks():
     def __init__(self, forkmotor: Motor):
         self.forkmotor = forkmotor
 
@@ -45,9 +44,3 @@ class Forks(Subsystem):
                 if self.basketContains[i][j] == 0:
                     return i+1,j+1
         return -1,-1
-    
-    def retractForksCommand(self):
-        self.run(self.retractForks(), False)
-
-    def toggleForksCommand(self):
-        self.run(self.toggleForks(), False)

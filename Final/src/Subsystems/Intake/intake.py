@@ -1,7 +1,6 @@
 from vex import *
-from Subsystems.subsystem import *
 
-class Intake (Subsystem):
+class Intake ():
     def __init__(self, intakemotor: Motor):
         self.intakemotor = intakemotor
 
@@ -22,9 +21,3 @@ class Intake (Subsystem):
         while self.intakemotor.current() < 0.5 or self.escapeLoop == False:
             self.runIntake("reverse")
         self.stopIntake()
-
-    def intakeUntilCurrentCommand(self):
-        self.run(self.intakeUntilCurrent(), False)
-
-    def stopIntakeCommand(self):
-        self.run(self.stopIntake(), False)

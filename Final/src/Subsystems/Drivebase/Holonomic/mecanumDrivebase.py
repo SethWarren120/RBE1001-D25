@@ -3,9 +3,8 @@ from vex import *
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
 import math
 from constants import *
-from Subsystems.subsystem import *
 
-class MecanumDrivebase (Subsystem):
+class MecanumDrivebase ():
     def __init__(self, _motorFrontLeft: Motor, _motorFrontRight: Motor, _motorBackLeft: Motor, _motorBackRight: Motor, 
                  _gyro: Inertial, _camera: AiVision, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorFrontLeft = _motorFrontLeft
@@ -24,61 +23,66 @@ class MecanumDrivebase (Subsystem):
 
         self.objectLocations = []
 
+        self.driveOverride = False
         odometryThread = Thread(self.updateOdometry)
         # findObjectsThread = Thread(self.calculateObjectPostion)
 
     def drive(self, xVel, yVel, rotVel):
-        rotationFactor = (wheel_base + track_width) / 2.0
+        if not self.driveOverride:
+            self.driveFree = False
+            rotationFactor = (wheel_base + track_width) / 2.0
 
-        # Get the current heading from the gyro
-        heading = self.gyro.heading(DEGREES)  # Returns [0, 360)
-        headingRadians = math.radians(heading)  # Convert heading to radians
+            # Get the current heading from the gyro
+            heading = self.gyro.heading(DEGREES)  # Returns [0, 360)
+            headingRadians = math.radians(heading)  # Convert heading to radians
 
-        # Apply field-centric transformation
-        tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
-        tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
+            # Apply field-centric transformation
+            tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
+            tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
 
-        # PID for linear velocity
-        distanceError = math.sqrt(tempXVel**2 + tempYVel**2)
-        integralDistanceError = 0
-        derivativeDistanceError = distanceError - self.prevDistanceError if hasattr(self, 'prevDistanceError') else 0
-        
-        integralDistanceError += distanceError
-        linearOutput = (
-            drivePID[0] * distanceError +
-            drivePID[1] * integralDistanceError +
-            drivePID[2] * derivativeDistanceError
-        )
-        self.prevDistanceError = distanceError  # Store for next call
+            # PID for linear velocity
+            distanceError = math.sqrt(tempXVel**2 + tempYVel**2)
+            integralDistanceError = 0
+            derivativeDistanceError = distanceError - self.prevDistanceError if hasattr(self, 'prevDistanceError') else 0
+            
+            integralDistanceError += distanceError
+            linearOutput = (
+                drivePID[0] * distanceError +
+                drivePID[1] * integralDistanceError +
+                drivePID[2] * derivativeDistanceError
+            )
+            self.prevDistanceError = distanceError  # Store for next call
 
-        # Scale the velocities using linearOutput
-        scaledXVel = linearOutput * (tempXVel / distanceError) if distanceError != 0 else 0
-        scaledYVel = linearOutput * (tempYVel / distanceError) if distanceError != 0 else 0
+            # Scale the velocities using linearOutput
+            scaledXVel = linearOutput * (tempXVel / distanceError) if distanceError != 0 else 0
+            scaledYVel = linearOutput * (tempYVel / distanceError) if distanceError != 0 else 0
 
-        # Ensure rotVel is in [0, 360) for consistent comparison
-        rotVel = rotVel % 360
-        
-        # PID for rotational velocity - normalize error to [-180, 180]
-        headingError = rotVel - heading
-        headingError = (headingError + 180) % 360 - 180  # Normalize to [-180, 180]
-        
-        integralHeadingError = 0
-        derivativeHeadingError = headingError - self.prevHeadingError if hasattr(self, 'prevHeadingError') else 0
-        
-        integralHeadingError += headingError
-        rotationalOutput = (
-            turnPID[0] * headingError +
-            turnPID[1] * integralHeadingError +
-            turnPID[2] * derivativeHeadingError
-        )
-        self.prevHeadingError = headingError  # Store for next call
+            # Ensure rotVel is in [0, 360) for consistent comparison
+            rotVel = rotVel % 360
+            
+            # PID for rotational velocity - normalize error to [-180, 180]
+            headingError = rotVel - heading
+            headingError = (headingError + 180) % 360 - 180  # Normalize to [-180, 180]
+            
+            integralHeadingError = 0
+            derivativeHeadingError = headingError - self.prevHeadingError if hasattr(self, 'prevHeadingError') else 0
+            
+            integralHeadingError += headingError
+            rotationalOutput = (
+                turnPID[0] * headingError +
+                turnPID[1] * integralHeadingError +
+                turnPID[2] * derivativeHeadingError
+            )
+            self.prevHeadingError = headingError  # Store for next call
 
-        # Drive the motors with the PID outputs
-        self.motorFrontLeft.spin(FORWARD, scaledYVel + scaledXVel + rotationalOutput * rotationFactor)
-        self.motorFrontRight.spin(FORWARD, scaledYVel - scaledXVel - rotationalOutput * rotationFactor)
-        self.motorBackLeft.spin(FORWARD, scaledYVel - scaledXVel + rotationalOutput * rotationFactor)
-        self.motorBackRight.spin(FORWARD, scaledYVel + scaledXVel - rotationalOutput * rotationFactor)
-        
+            # Drive the motors with the PID outputs
+            self.motorFrontLeft.spin(FORWARD, scaledYVel + scaledXVel + rotationalOutput * rotationFactor)
+            self.motorFrontRight.spin(FORWARD, scaledYVel - scaledXVel - rotationalOutput * rotationFactor)
+            self.motorBackLeft.spin(FORWARD, scaledYVel - scaledXVel + rotationalOutput * rotationFactor)
+            self.motorBackRight.spin(FORWARD, scaledYVel + scaledXVel - rotationalOutput * rotationFactor)
+            
+            self.driveFree = True
+
     def updateOdometry(self):
         frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * wheelCircumference
         frontRightDistance = self.motorFrontRight.position(DEGREES) / 360.0 * wheelCircumference
@@ -119,6 +123,10 @@ class MecanumDrivebase (Subsystem):
 
 
     def driveToPose(self, x, y, heading, tolerance=0.5):
+        self.driveOverride = True
+        while not self.driveFree:
+            pass
+
         heading = heading % 360
 
         prevDistanceError = 0
@@ -188,7 +196,7 @@ class MecanumDrivebase (Subsystem):
                 rotVel = max(-200, min(200, rotVel))
                 
                 # Drive the robot
-                self.driveCommand(xVel, yVel, rotVel)
+                self.drive(xVel, yVel, rotVel)
 
                 # Update odometry
                 self.updateOdometry()
@@ -198,7 +206,10 @@ class MecanumDrivebase (Subsystem):
             
             # Move to the next waypoint
             currentWaypoint += 1
-    
+
+        self.driveFree = True
+        self.driveOverride = False
+
     def checkPathAndAvoidObstacles(self, startX, startY, endX, endY):
         safetyDistance = 3.0  # inches
         
@@ -269,39 +280,5 @@ class MecanumDrivebase (Subsystem):
         waypoints.append((endX, endY))
         return waypoints
 
-    # def calculateObjectPostion(self):
-    #     self.camera.take_snapshot(0)
-
-    #     largestObject = self.camera.largest_object()
-    #     if largestObject.exists:
-    #         pass
-        
-    #     wait(20)
-
-    # def removeRedundant(self):
-    #     uniqueLocations = []
-    #     for fruit in self.objectLocations:
-    #         isDuplicate = False
-    #         for uniqueFruit in uniqueLocations:
-    #             # Calculate the distance between the current fruit and the unique fruit
-    #             distance = math.sqrt((fruit[1] - uniqueFruit[1])**2 + (fruit[2] - uniqueFruit[2])**2)
-    #             if distance < objectThreashold:
-    #                 isDuplicate = True
-    #                 break
-    #         if not isDuplicate:
-    #             uniqueLocations.append(fruit)
-
-    #     # Update the objectLocations list with unique positions
-    #     self.objectLocations = uniqueLocations
-    
     def zeroGyro(self):
         self.gyro.set_heading(0, DEGREES)
-
-    def driveCommand(self, x, y, theta):
-        self.run(self.drive(x,y,theta), False)
-
-    def driveToPoseCommand(self, x, y, theta):
-        self.run(self.driveToPose(x,y,theta), False)
-
-    def zeroGyroCommand(self):
-        self.run(self.zeroGyro(), False)
