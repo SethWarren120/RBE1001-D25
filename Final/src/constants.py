@@ -66,22 +66,23 @@ highFruitAngle = 90 #degrees
 lowFruitWristAngle = 5 #degrees
 highFruitWristAngle = 10 #degrees
 
-minArmLength = 0 #inches
-maxArmLength = 20 #inches
+minArmLength = 0
+maxArmLength = 108 
 
-minArmAngle = 0 #degrees
-maxArmAngle = 180 #degrees
+minArmAngle = 0
+maxArmAngle = 117
 
-minWristAngle = 0 #degrees
-maxWristAngle = 180 #degrees
+minWristAngle = 0
+maxWristAngle = 180
 
 armGearRatio = 5
-pivotGearRatio = 5
+pivotGearRatio = 72/12
 wristGearRatio = 5
 
-armPID = [0,0,0]
+armPID = [1,0,0]
 armTolerance = 1
-pivotPID = [0,0,0]
-pivotTolerance = 1
-wristPID = [0,0,0]
+pivotPID = [1.4,0,0]
+pivotFF = 0.5
+pivotTolerance = 0.5
+wristPID = [1,0,0]
 wristTolerance = 1
