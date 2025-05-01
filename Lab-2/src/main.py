@@ -34,7 +34,7 @@ left_motor.reset_position()
 right_motor.set_velocity(200, RPM)
 right_motor.reset_position()
 
-arm_motor = Motor(Ports.PORT4, 18_1, False)
+arm_motor = Motor(Ports.PORT9, 18_1, False)
 arm_motor.set_velocity(200, RPM)
 arm_motor.reset_position()
 
@@ -52,16 +52,27 @@ wait(2000)
 # Drivebase Testing
 peripherals = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch, arm_motor]
 robotConfig = RobotConfig(wheelDiameter, gear_ratio, track_width, peripherals)
-drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=10)
+drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=7.5)
 
 def printSensors():
     while True:
         #lab 2.4
-        brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=20)
-        brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=40)
-        brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=60)
-        brain.screen.print_at("best value", drivebase.BestValue,x=0,y=80)
+        brain.screen.print_at("arm current: ", arm_motor.current(),x=0,y=20)
+        brain.screen.print_at("arm torque: ", arm_motor.torque(),x=0,y=40)
+        brain.screen.print_at("arm temperature: ", arm_motor.temperature(),x=0,y=60)
         brain.screen.render()
 
 sensorsThread = Thread(printSensors)
-drivebase.driveLab21()
+# drivebase.driveLab21()
+# drivebase.driveLab22()
+# drivebase.driveLab23()
+
+arm_motor.reset_position()
+wait(20)
+def toggleArm():
+    armTo(abs(arm_motor.position()/5)-60)
+
+def armTo(position):
+    arm_motor.spin_to_position(position*5, DEGREES, 100, RPM, False)
+
+bumpSwitch.pressed(toggleArm)

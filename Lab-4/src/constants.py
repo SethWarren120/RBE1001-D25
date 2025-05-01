@@ -15,7 +15,7 @@ turnPID = [1,0,0]
 
 #vision constants
 #x is forward, y is left, z is up
-vision_orange = Colordesc(1,245,134,89,5,0.17)
+vision_orange = Colordesc(1, 245, 134, 89, 9, 0.37)
 cameraOffset = [0, 0, 0] #inches
 cameraFOV = 75 #degrees
 

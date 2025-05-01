@@ -120,11 +120,9 @@ class TankDrivebase ():
         self.wheelBase = robotConfig.getDrivebaseWidth()
         self.circumference = robotConfig.getCircumference()
         self.dpi = robotConfig.getDPI()
-        self.armToggled = False
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
         self.kP = kP
-        self.BestValue = 0
         self.rangeFinderRightSide = robotConfig.getRightRangeFinder()
         self.rangeFinderFront = robotConfig.getFrontRangeFinder()
         self.inertial = robotConfig.getInertialSensor()
@@ -170,10 +168,6 @@ class TankDrivebase ():
     def onLine(self, sensor):
         whiteLineValue = 94
         return sensor.reflectivity() < whiteLineValue
-    def toggleBumpSwitch(self):
-        self.armToggled = not self.armToggled
-    def armTo(self, position):
-        self.armMotor.spin_to_position(position, DEGREES, 100, RPM, False)
     def driveLab21(self):
         self.desiredDistance = 8.0
         while not self.hitWall():
@@ -220,83 +214,106 @@ class TankDrivebase ():
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
-        while abs(self.inertial.heading()) < 90:
+        self.motorRight.reset_position()
+        self.motorLeft.reset_position()
+        wait(20)
+        self.inertial.set_heading(180)
+        while abs(self.inertial.heading()) > 110:
             self.drive(0,200)
-        self.inertial.set_heading(0)
-        self.motorLeft.stop()
-        self.motorRight.stop()
-        self.desiredDistance = 43.15
-        while not self.hitWall():
-            self.wallFollowInches(5.0)
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
-        while abs(self.inertial.heading()) < 90:
-            self.drive(0,200)
-        self.inertial.set_heading(0)
+        self.desiredDistance = 10
+        while not self.hitWall():
+            self.wallFollowInches(11.0)
+            wait(20)
+        self.inertial.set_heading(180)
+        wait(20)
+        self.motorRight.reset_position()
+        self.motorLeft.reset_position()
+        while abs(self.motorLeft.position(self.rotationUnits)/5) < 880:
+            self.drive(-200,0)
         self.motorLeft.stop()
         self.motorRight.stop()
-        while self.motorLeft.position(self.rotationUnits) < 20:
+        while abs(self.inertial.heading()) > 110:
+            self.drive(0,200)
+            wait(20)
+        self.inertial.set_heading(180)
+        self.motorLeft.stop()
+        self.motorRight.stop()
+        self.motorRight.reset_position()
+        self.motorLeft.reset_position()
+        wait(20)
+        while abs(self.motorLeft.position(self.rotationUnits)/5) < 550:
             self.drive(200,0)
+        self.motorLeft.stop()
+        self.motorRight.stop()
     def driveLab23(self):
+        self.desiredDistance = 3
+        while not self.hitWall():
+            rightError = self.rangeFinderRightSide.distance(INCHES) - 6
+            if (not self.onLine(self.leftLineSensor)):
+                self.drive(200, 20)
+            elif (not self.onLine(self.rightLineSensor)):
+                self.drive(200, -20)
+            else:
+                self.drive(200, -self.kP*rightError)
+            wait(20)
+        self.motorLeft.stop()
+        self.motorRight.stop()
+        self.motorRight.reset_position()
+        self.motorLeft.reset_position()
+        wait(20)
+        self.inertial.set_heading(180)
+        while abs(self.inertial.heading()) > 110:
+            self.drive(0,200)
+            wait(20)
+        self.drive(0,200)
+        self.motorLeft.stop()
+        self.motorRight.stop()
         self.desiredDistance = 8
-        leftTimeOffLine = 1
-        rightTimeOffLine = 1
         while not self.hitWall():
+            rightError = self.rangeFinderRightSide.distance(INCHES) - 6
             if (not self.onLine(self.leftLineSensor)):
-                self.drive(200, -20*leftTimeOffLine)
-                leftTimeOffLine += 1
-                rightTimeOffLine = 1
+                self.drive(200, 20)
             elif (not self.onLine(self.rightLineSensor)):
-                self.drive(200, 20*rightTimeOffLine)
-                leftTimeOffLine = 1
-                rightTimeOffLine += 1
+                self.drive(200, -20)
             else:
-                self.drive(200, 0)
-                leftTimeOffLine = 1
-                rightTimeOffLine = 1
+                self.drive(200, -self.kP*rightError)
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
-        while abs(self.inertial.heading()) < 90:
-            self.drive(0,200)
-        self.inertial.set_heading(0)
-        self.motorLeft.stop()
-        self.motorRight.stop()
-        self.desiredDistance = 43.15
-        leftTimeOffLine = 1
-        rightTimeOffLine = 1
-        while not self.hitWall():
+        self.motorRight.reset_position()
+        self.motorLeft.reset_position()
+        wait(20)
+        while abs(self.motorLeft.position(self.rotationUnits)/5) < 880:
+            rightError = self.rangeFinderRightSide.distance(INCHES) - 6
             if (not self.onLine(self.leftLineSensor)):
-                self.drive(200, -20*leftTimeOffLine)
-                leftTimeOffLine += 1
-                rightTimeOffLine = 1
+                self.drive(-200, -20)
             elif (not self.onLine(self.rightLineSensor)):
-                self.drive(200, 20*rightTimeOffLine)
-                leftTimeOffLine = 1
-                rightTimeOffLine += 1
+                self.drive(-200, 20)
             else:
-                self.drive(200, 0)
-                leftTimeOffLine = 1
-                rightTimeOffLine = 1
+                self.drive(-200, -self.kP*rightError)
             wait(20)
         self.motorLeft.stop()
         self.motorRight.stop()
-        while abs(self.inertial.heading()) < 90:
+        self.motorRight.reset_position()
+        self.motorLeft.reset_position()
+        wait(20)
+        self.inertial.set_heading(180)
+        while abs(self.inertial.heading()) > 110:
             self.drive(0,200)
-        self.inertial.set_heading(0)
+            wait(20)
+        self.inertial.set_heading(180)
         self.motorLeft.stop()
         self.motorRight.stop()
-        while self.motorLeft.position(self.rotationUnits) < 20:
+        self.motorRight.reset_position()
+        self.motorLeft.reset_position()
+        wait(20)
+        while abs(self.motorLeft.position(self.rotationUnits)/5) < 550:
             self.drive(200,0)
-    def getBestValue(self):
-        return self.BestValue
-    def lab24(self):
-        while True:
-            if self.armToggled:
-                self.armTo(90)
-            else:
-                self.armTo(0)
+        self.motorLeft.stop()
+        self.motorRight.stop()
 class RobotConfig:
     def __init__(self, wheelDiameter, gearRatio, drivebaseWidth, peripherals):
         self.wheelDiameter = wheelDiameter
@@ -341,7 +358,7 @@ left_motor.set_velocity(200, RPM)
 left_motor.reset_position()
 right_motor.set_velocity(200, RPM)
 right_motor.reset_position()
-arm_motor = Motor(Ports.PORT4, 18_1, False)
+arm_motor = Motor(Ports.PORT9, 18_1, False)
 arm_motor.set_velocity(200, RPM)
 arm_motor.reset_position()
 rangeFinderFront = Sonar(brain.three_wire_port.e)
@@ -354,13 +371,18 @@ inertial.calibrate()
 wait(2000)
 peripherals = [rangeFinderFront, rangeFinderRight, inertial, lineSensorLeft, lineSensorRight, bumpSwitch, arm_motor]
 robotConfig = RobotConfig(wheelDiameter, gear_ratio, track_width, peripherals)
-drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=10)
+drivebase = TankDrivebase(left_motor, right_motor, robotConfig=robotConfig, kP=7.5)
 def printSensors():
     while True:
-        brain.screen.print_at("arm current: ", arm_motor.current,x=0,y=20)
-        brain.screen.print_at("arm torque: ", arm_motor.torque,x=0,y=40)
-        brain.screen.print_at("arm temperature: ", arm_motor.temperature,x=0,y=60)
-        brain.screen.print_at("best value", drivebase.BestValue,x=0,y=80)
+        brain.screen.print_at("arm current: ", arm_motor.current(),x=0,y=20)
+        brain.screen.print_at("arm torque: ", arm_motor.torque(),x=0,y=40)
+        brain.screen.print_at("arm temperature: ", arm_motor.temperature(),x=0,y=60)
         brain.screen.render()
 sensorsThread = Thread(printSensors)
-drivebase.driveLab21()
+arm_motor.reset_position()
+wait(20)
+def toggleArm():
+    armTo(abs(arm_motor.position()/5)-60)
+def armTo(position):
+    arm_motor.spin_to_position(position*5, DEGREES, 100, RPM, False)
+bumpSwitch.pressed(toggleArm)

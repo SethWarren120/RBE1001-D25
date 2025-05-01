@@ -11,7 +11,7 @@ wheelCircumference = 3.14 * wheelDiameter
 degreesPerInch = 360.0 / wheelCircumference
 drivePID = [1,0,0]
 turnPID = [1,0,0]
-vision_orange = Colordesc(1,245,134,89,5,0.17)
+vision_orange = Colordesc(1, 245, 134, 89, 9, 0.37)
 cameraOffset = [0, 0, 0] #inches
 cameraFOV = 75 #degrees
 cameraXOffset = -320/2
@@ -130,29 +130,7 @@ class DrivebaseMotorCorrectionProfile:
         print(config.startingOffsets)
         config.configured = False
         return config
-class Subsystem():
-    def __init__(self):
-        self.defaultCommand = None
-        self.currentCommand = None
-        self.commandList = []
-        periodicThread  = Thread(self.periodic)
-    def setDefaultCommand(self, command: function):
-        self.defaultCommand = command
-    def run(self, command, priority: bool):
-        if priority:
-            self.commandList.insert(0, command)
-        else:
-            self.commandList.append(command)
-    def periodic(self):
-        while True:
-            if (self.commandList.count == 0):
-                if (self.defaultCommand != None):
-                    self.commandList.append(self.defaultCommand)
-            else:
-                self.currentCommand = self.commandList.pop(0)
-                self.currentCommand()
-            wait(20)
-class TankDrivebase (Subsystem):
+class TankDrivebase ():
     def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, vision: AiVision,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
@@ -226,9 +204,23 @@ class TankDrivebase (Subsystem):
         widthChange = viewedWidth - 68
         self.motorLeft.spin(FORWARD, widthChange*0.8, self.speedUnits)
         self.motorRight.spin(FORWARD, widthChange*0.8, self.speedUnits)
+    def objectDriveCombined(self):
+        objects = None
+        while True:
+            objects = self.vision.take_snapshot(vision_orange)
+            if len(objects) > 0:
+                break
+        x = objects[0].centerX
+        y = objects[0].centerY
+        correctedX = x + cameraXOffset
+        correctedY = y + cameraYOffset
+        viewedWidth = objects[0].width
+        widthChange = viewedWidth - 68
+        self.motorLeft.spin(FORWARD, correctedX*0.8+widthChange*1.8, self.speedUnits)
+        self.motorRight.spin(FORWARD, -correctedX*0.8+widthChange*1.8, self.speedUnits)
     def lab(self):
         while True:
-            self.centerToObject()
+            self.objectDriveCombined()
             wait(20)
 def setSubsystems(driveBase: TankDrivebase):
     global driveSub
