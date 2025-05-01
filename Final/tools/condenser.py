@@ -1,3 +1,4 @@
+# All credit to Seth for the code to condense the project into a single file
 import json
 import os
 

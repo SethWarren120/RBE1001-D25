@@ -1,4 +1,4 @@
-# Library imports
+# Credit to Seth for the tank drive motor corrector
 from vex import *
 
 class DrivebaseMotorCorrector:

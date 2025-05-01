@@ -4,84 +4,124 @@ from Subsystems.Drivebase.drivebaseMotorCorrector import *
 import math
 from constants import *
 
+class DriveState():
+    IDLE = 0
+    TELEOP = 1
+    AUTO = 2
+
 class MecanumDrivebase ():
     def __init__(self, _motorFrontLeft: Motor, _motorFrontRight: Motor, _motorBackLeft: Motor, _motorBackRight: Motor, 
-                 _gyro: Inertial, _camera: AiVision, _rotationUnits = DEGREES, _speedUnits = RPM):
+                 _gyro: Inertial, _tagCamera: AiVision, _camera: Vision,_controller: Controller, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorFrontLeft = _motorFrontLeft
         self.motorFrontRight = _motorFrontRight
         self.motorBackLeft = _motorBackLeft
         self.motorBackRight = _motorBackRight
         self.gyro = _gyro
+        self.tagCamera = _tagCamera
         self.camera = _camera
+        self.controller = _controller
 
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
-
+            
         self.x = 0
         self.y = 0
         self.heading = 0
 
-        self.objectLocations = []
+        self.targetX = 0
+        self.targetY = 0
+        self.targetHeading = 0
+        self.tolerance = 0.5
 
-        self.driveOverride = False
+        self.state = DriveState.IDLE
+
         odometryThread = Thread(self.updateOdometry)
-        # findObjectsThread = Thread(self.calculateObjectPostion)
+        stateUpdateThread = Thread(self.stateUpdate)
+        controllerThread = Thread(self.controllerDriveUpdate)
+            
+    def setState(self, newState):
+        if self.state != newState:
+            self.state = newState
+            
+            if newState == DriveState.IDLE:
+                self.stopMotors()
+            elif newState == DriveState.AUTO:
+                self.prevDistanceError = 0
+                self.prevHeadingError = 0
+                self.integralDistanceError = 0
+                self.integralHeadingError = 0
+    
+    def stateUpdate(self):
+        while True:
+            if self.state == DriveState.IDLE:
+                pass
+            
+            elif self.state == DriveState.AUTO:
+                self.updateAutoDrive()
+            
+            # elif self.state == DriveState.TELEOP:
+                # self.controllerDriveUpdate()
+
+            wait(20)
+
+    def stopMotors(self):
+        self.motorFrontLeft.stop()
+        self.motorFrontRight.stop()
+        self.motorBackLeft.stop()
+        self.motorBackRight.stop()
 
     def drive(self, xVel, yVel, rotVel):
-        if not self.driveOverride:
-            self.driveFree = False
-            rotationFactor = (wheel_base + track_width) / 2.0
+        if self.state == DriveState.AUTO:
+            return
+        
+        if xVel != 0 or yVel != 0 or rotVel != 0:
+            self.setState(DriveState.TELEOP)
+        else:
+            self.setState(DriveState.IDLE)
+            return
+        
+        linearFactor = 5.0
+        rotationFactor = (wheel_base + track_width) / 2.0
 
-            # Get the current heading from the gyro
-            heading = self.gyro.heading(DEGREES)  # Returns [0, 360)
-            headingRadians = math.radians(heading)  # Convert heading to radians
+        # Get the current heading from the gyro
+        heading = self.gyro.heading(DEGREES)  # Returns [0, 360)
+        headingRadians = math.radians(heading)  # Convert heading to radians
 
-            # Apply field-centric transformation
-            tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
-            tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
+        # Apply field-centric transformation
+        newXVel = (xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians))*linearFactor
+        newYVel = (xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians))**linearFactor
 
-            # PID for linear velocity
-            distanceError = math.sqrt(tempXVel**2 + tempYVel**2)
-            integralDistanceError = 0
-            derivativeDistanceError = distanceError - self.prevDistanceError if hasattr(self, 'prevDistanceError') else 0
+        # Ensure rotVel is in [0, 360) for consistent comparison
+        rotVel = rotVel % 360
+
+        print(newYVel + newXVel + rotVel * rotationFactor)
+        print(newYVel - newXVel - rotVel * rotationFactor)
+        print(newYVel - newXVel + rotVel * rotationFactor)
+        print(newYVel + newXVel - rotVel * rotationFactor)
+
+        self.motorFrontLeft.spin(FORWARD, newYVel + newXVel + rotVel * rotationFactor)
+        self.motorFrontRight.spin(FORWARD, newYVel - newXVel - rotVel * rotationFactor)
+        self.motorBackLeft.spin(FORWARD, newYVel - newXVel + rotVel * rotationFactor)
+        self.motorBackRight.spin(FORWARD, newYVel + newXVel - rotVel * rotationFactor)
+    
+    def controllerDriveUpdate(self):
+        while True:
+            if self.state != DriveState.AUTO:
+                # Get joystick positions - adjust these based on your controller layout
+                xInput = self.controller.axis4.position()  # Left joystick X
+                yInput = self.controller.axis3.position()  # Left joystick Y
+                rotInput = self.controller.axis1.position()  # Right joystick X
+                
+                # Apply deadzone to prevent drift
+                deadzone = 5
+                if abs(xInput) < deadzone: xInput = 0
+                if abs(yInput) < deadzone: yInput = 0
+                if abs(rotInput) < deadzone: rotInput = 0
+                
+                # Pass to drive method
+                self.drive(xInput, yInput, rotInput)
             
-            integralDistanceError += distanceError
-            linearOutput = (
-                drivePID[0] * distanceError +
-                drivePID[1] * integralDistanceError +
-                drivePID[2] * derivativeDistanceError
-            )
-            self.prevDistanceError = distanceError  # Store for next call
-
-            # Scale the velocities using linearOutput
-            scaledXVel = linearOutput * (tempXVel / distanceError) if distanceError != 0 else 0
-            scaledYVel = linearOutput * (tempYVel / distanceError) if distanceError != 0 else 0
-
-            # Ensure rotVel is in [0, 360) for consistent comparison
-            rotVel = rotVel % 360
-            
-            # PID for rotational velocity - normalize error to [-180, 180]
-            headingError = rotVel - heading
-            headingError = (headingError + 180) % 360 - 180  # Normalize to [-180, 180]
-            
-            integralHeadingError = 0
-            derivativeHeadingError = headingError - self.prevHeadingError if hasattr(self, 'prevHeadingError') else 0
-            
-            integralHeadingError += headingError
-            rotationalOutput = (
-                turnPID[0] * headingError +
-                turnPID[1] * integralHeadingError +
-                turnPID[2] * derivativeHeadingError
-            )
-            self.prevHeadingError = headingError  # Store for next call
-
-            # Drive the motors with the PID outputs
-            self.motorFrontLeft.spin(FORWARD, scaledYVel + scaledXVel + rotationalOutput * rotationFactor)
-            self.motorFrontRight.spin(FORWARD, scaledYVel - scaledXVel - rotationalOutput * rotationFactor)
-            self.motorBackLeft.spin(FORWARD, scaledYVel - scaledXVel + rotationalOutput * rotationFactor)
-            self.motorBackRight.spin(FORWARD, scaledYVel + scaledXVel - rotationalOutput * rotationFactor)
-            
-            self.driveFree = True
+            wait(20)
 
     def updateOdometry(self):
         frontLeftDistance = self.motorFrontLeft.position(DEGREES) / 360.0 * wheelCircumference
@@ -106,7 +146,7 @@ class MecanumDrivebase ():
         self.y += deltaY
         self.heading = self.gyro.heading(DEGREES)
 
-        aprilTags = self.camera.take_snapshot(AiVision.ALL_TAGS)
+        aprilTags = self.tagCamera.take_snapshot(AiVision.ALL_TAGS)
         for tag in aprilTags:
             location = tagLocations[tag.id-1]
             tagX, tagY, tagAngle = location
@@ -121,97 +161,21 @@ class MecanumDrivebase ():
             self.y = adjustedY - observedY
             self.heading = (tagAngle - observedAngle) % 360
 
-
     def driveToPose(self, x, y, heading, tolerance=0.5):
-        self.driveOverride = True
-        while not self.driveFree:
-            pass
-
-        heading = heading % 360
-
-        prevDistanceError = 0
-        prevHeadingError = 0
-        integralDistanceError = 0
-        integralHeadingError = 0
+        self.targetX = x
+        self.targetY = y
+        self.targetHeading = heading % 360
+        self.tolerance = tolerance
+        self.setState(DriveState.AUTO)
         
-        # Calculate path to avoid obstacles
-        waypoints = self.checkPathAndAvoidObstacles(self.x, self.y, x, y)
-        currentWaypoint = 0
-        
-        while currentWaypoint < len(waypoints):
-            targetX, targetY = waypoints[currentWaypoint]
-            
-            while True:
-                # Calculate the error in position and heading
-                deltaX = targetX - self.x
-                deltaY = targetY - self.y
-                distanceError = math.sqrt(deltaX**2 + deltaY**2)
-                
-                # Use final heading for the last waypoint, otherwise face toward waypoint
-                if currentWaypoint == len(waypoints) - 1:
-                    targetHeading = heading
-                else:
-                    # Point toward the waypoint
-                    targetHeading = math.degrees(math.atan2(deltaY, deltaX))
-                
-                headingError = targetHeading - self.heading
-                headingError = (headingError + 180) % 360 - 180
-
-                # Check if the robot is within the tolerances of the current waypoint
-                waypointTolerance = tolerance if currentWaypoint == len(waypoints) - 1 else 2.0
-                headingTolerance = tolerance if currentWaypoint == len(waypoints) - 1 else 10.0
-                
-                if distanceError <= waypointTolerance and abs(headingError) <= headingTolerance:
-                    break
-
-                # PID for position
-                integralDistanceError += distanceError
-                derivativeDistanceError = distanceError - prevDistanceError
-                positionOutput = (
-                    drivePID[0] * distanceError +
-                    drivePID[1] * integralDistanceError +
-                    drivePID[2] * derivativeDistanceError
-                )
-                prevDistanceError = distanceError
-
-                # PID for heading
-                integralHeadingError += headingError
-                derivativeHeadingError = headingError - prevHeadingError
-                headingOutput = (
-                    turnPID[0] * headingError +
-                    turnPID[1] * integralHeadingError +
-                    turnPID[2] * derivativeHeadingError
-                )
-                prevHeadingError = headingError
-
-                # Calculate the desired velocities
-                angleToTarget = math.atan2(deltaY, deltaX)  # Angle to the target in radians
-                xVel = positionOutput * math.cos(angleToTarget)  # Scale speed by angle
-                yVel = positionOutput * math.sin(angleToTarget)  # Scale speed by angle
-                rotVel = headingOutput  # Use heading PID output for rotation
-
-                # Limit the velocities to the maximum speed
-                xVel = max(-200, min(200, xVel))
-                yVel = max(-200, min(200, yVel))
-                rotVel = max(-200, min(200, rotVel))
-                
-                # Drive the robot
-                self.drive(xVel, yVel, rotVel)
-
-                # Update odometry
-                self.updateOdometry()
-                
-                # Small delay to prevent CPU hogging
-                wait(20)
-            
-            # Move to the next waypoint
-            currentWaypoint += 1
-
-        self.driveFree = True
-        self.driveOverride = False
+        # Reset PID errors
+        self.prevDistanceError = 0
+        self.prevHeadingError = 0
+        self.integralDistanceError = 0
+        self.integralHeadingError = 0
 
     def checkPathAndAvoidObstacles(self, startX, startY, endX, endY):
-        safetyDistance = 3.0  # inches
+        safetyDistance = 1.0
         
         needsPathPlanning = False
         closestPost = None
@@ -219,10 +183,9 @@ class MecanumDrivebase ():
         
         for post in posts:    
             lineLength = math.sqrt((endX - startX)**2 + (endY - startY)**2)
-            if lineLength == 0:  # Start and end points are the same
+            if lineLength == 0:
                 distance = math.sqrt((post[0] - startX)**2 + (post[1] - startY)**2)
             else:
-                # Cross product divided by line length gives perpendicular distance
                 distance = abs((endY - startY) * post[0] - (endX - startX) * post[1] + 
                             endX * startY - endY * startX) / lineLength
                 
@@ -280,5 +243,122 @@ class MecanumDrivebase ():
         waypoints.append((endX, endY))
         return waypoints
 
+    def updateAutoDrive(self):
+        # Calculate waypoints to avoid obstacles
+        waypoints = self.checkPathAndAvoidObstacles(self.x, self.y, self.targetX, self.targetY)
+        currentWaypoint = 0
+        
+        while currentWaypoint < len(waypoints) and self.state == DriveState.AUTO:
+            targetX, targetY = waypoints[currentWaypoint]
+            
+            # Calculate the error in position and heading
+            deltaX = targetX - self.x
+            deltaY = targetY - self.y
+            distanceError = math.sqrt(deltaX**2 + deltaY**2)
+            
+            # Use final heading for the last waypoint, otherwise face toward waypoint
+            if currentWaypoint == len(waypoints) - 1:
+                targetHeading = self.targetHeading
+            else:
+                # Point toward the waypoint
+                targetHeading = math.degrees(math.atan2(deltaY, deltaX))
+            
+            headingError = targetHeading - self.heading
+            headingError = (headingError + 180) % 360 - 180
+
+            # Check if the robot is within the tolerances of the current waypoint
+            waypointTolerance = self.tolerance if currentWaypoint == len(waypoints) - 1 else 2.0
+            headingTolerance = self.tolerance if currentWaypoint == len(waypoints) - 1 else 10.0
+            
+            if distanceError <= waypointTolerance and abs(headingError) <= headingTolerance:
+                currentWaypoint += 1
+                continue
+
+            # PID for position
+            self.integralDistanceError += distanceError
+            derivativeDistanceError = distanceError - self.prevDistanceError
+            positionOutput = (
+                drivePID[0] * distanceError +
+                drivePID[1] * self.integralDistanceError +
+                drivePID[2] * derivativeDistanceError
+            )
+            self.prevDistanceError = distanceError
+
+            # PID for heading
+            self.integralHeadingError += headingError
+            derivativeHeadingError = headingError - self.prevHeadingError
+            headingOutput = (
+                turnPID[0] * headingError +
+                turnPID[1] * self.integralHeadingError +
+                turnPID[2] * derivativeHeadingError
+            )
+            self.prevHeadingError = headingError
+
+            # Calculate the desired velocities
+            angleToTarget = math.atan2(deltaY, deltaX)  # Angle to the target in radians
+            xVel = positionOutput * math.cos(angleToTarget)  # Scale speed by angle
+            yVel = positionOutput * math.sin(angleToTarget)  # Scale speed by angle
+            rotVel = headingOutput  # Use heading PID output for rotation
+
+            # Limit the velocities to the maximum speed
+            xVel = max(-200, min(200, xVel))
+            yVel = max(-200, min(200, yVel))
+            rotVel = max(-200, min(200, rotVel))
+            
+            # Apply velocities directly to motors
+            heading = self.gyro.heading(DEGREES)
+            headingRadians = math.radians(heading)
+            
+            # Apply field-centric transformation
+            tempXVel = xVel * math.cos(headingRadians) - yVel * math.sin(headingRadians)
+            tempYVel = xVel * math.sin(headingRadians) + yVel * math.cos(headingRadians)
+            
+            rotationFactor = (wheel_base + track_width) / 2.0
+            
+            # Drive the motors
+            self.motorFrontLeft.spin(FORWARD, tempYVel + tempXVel + rotVel * rotationFactor)
+            self.motorFrontRight.spin(FORWARD, tempYVel - tempXVel - rotVel * rotationFactor)
+            self.motorBackLeft.spin(FORWARD, tempYVel - tempXVel + rotVel * rotationFactor)
+            self.motorBackRight.spin(FORWARD, tempYVel + tempXVel - rotVel * rotationFactor)
+            
+            wait(20)  # Small delay for control loop
+
+        # We've reached our destination or been interrupted
+        if self.state == DriveState.AUTO and currentWaypoint >= len(waypoints):
+            self.setState(DriveState.IDLE)
+
     def zeroGyro(self):
         self.gyro.set_heading(0, DEGREES)
+
+    def centerToObject(self):
+        orangeObjects = self.camera.take_snapshot(vision_orange)
+        orangeClosest = self.camera.largest_object()
+        greenObjects = self.camera.take_snapshot(vision_green)
+        greenClosest = self.camera.largest_object()
+        yellowObjects = self.camera.take_snapshot(vision_yellow)
+        yellowClosest = self.camera.largest_object()
+
+        objectToCenter = None
+        if (orangeClosest.width > greenClosest.width and orangeClosest.width > yellowClosest.width):
+            # orange closest
+            objectToCenter = orangeClosest
+        elif (greenClosest.width > orangeClosest.width and greenClosest.width > yellowClosest.width):
+            # green closest
+            objectToCenter = greenClosest
+        elif (yellowClosest.width > orangeClosest.width and yellowClosest.width > greenClosest.width):
+            # yellow closest
+            objectToCenter = yellowClosest
+        else:
+            # no object found
+            pass
+
+        if (objectToCenter is not None):
+            # Calculate the center of the object
+            objectCenterX = objectToCenter.centerX - cameraXOffset
+            objectCenterY = objectToCenter.centerY - cameraYOffset
+
+            # Calculate the angle to turn to center the object
+            angleToTurn = math.atan2(objectCenterY, objectCenterX) * (180 / math.pi)
+
+            # Rotate the robot to face the object
+            self.driveToPose(self.x, self.y, angleToTurn)

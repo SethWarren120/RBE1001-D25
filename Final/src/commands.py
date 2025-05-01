@@ -3,15 +3,13 @@ from constants import *
 from Subsystems.Drivebase.Holonomic.mecanumDrivebase import MecanumDrivebase
 from Subsystems.Arm.arm import Arm
 from Subsystems.Intake.intake import Intake
-from Subsystems.Forks.forks import Forks
 
-def setSubsystems(driveBase: MecanumDrivebase, arm: Arm, intake: Intake, forks: Forks):
+def setSubsystems(driveBase: MecanumDrivebase, arm: Arm, intake: Intake):
     global driveSub, armSub, intakeSub, forksSub
 
     driveSub = driveBase
     armSub = arm
     intakeSub = intake
-    forksSub = forks
 
 def grabFruit(fruitPose, length, isLowFruit):
     if isLowFruit:
