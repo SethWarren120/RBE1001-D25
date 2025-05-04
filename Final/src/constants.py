@@ -10,22 +10,27 @@ gear_ratio = 5
 wheelCircumference = 3.14 * wheelDiameter 
 degreesPerInch = 360.0 / wheelCircumference
 
-drivePID = [0.1,0,0]
-turnPID = [0.1,0,0]
+drivePID = [0.01,0,0]
 
 #vision constants
 #x,y,z,roll,pitch,yaw
 #x is forward, y is left, z is up
-cameraOffset = [0, 0, 0, 0, 0, 0] #inches
+tagCameraOffset = [0, 0, 0, 0, 0, 0] #inches
+objCameraOffset = [0, 0, 0, 0, 0, 0] #inches
 
 vision_orange = Colordesc(1,245,134,89,5,0.17)
 vision_yellow = Colordesc(1,245,134,89,5,0.17)
 vision_green = Colordesc(1,245,134,89,5,0.17)
 
-cameraWidth = 320
-cameraHeight = 240
-cameraXOffset = cameraWidth/2
-cameraYOffset = cameraHeight/2
+tagCameraWidth = 320
+tagCameraHeight = 240
+tagCameraXOffset = tagCameraWidth/2
+tagCameraYOffset = tagCameraHeight/2
+
+objCameraWidth = 320
+objCameraHeight = 240
+objCameraXOffset = objCameraWidth/2
+objCameraYOffset = objCameraHeight/2
 
 fruitHeight1 = 5 #inches
 fruitHeight2 = 10 #inches
@@ -93,23 +98,30 @@ highFruitAngle = 90 #degrees
 lowFruitWristAngle = 5 #degrees
 highFruitWristAngle = 10 #degrees
 
-minArmLength = 2
-maxArmLength = 108 
+minArmLength = 0
+maxArmLength = 270
 
 minArmAngle = 1
-maxArmAngle = 70
+maxArmAngle = 90
 
 minWristAngle = 2
 maxWristAngle = 180
 
-armGearRatio = 5
-pivotGearRatio = 72/12 * 20/12
-wristGearRatio = 5
+armGearRatio = 12/6
+pivotGearRatio = 72/12
+wristGearRatio = 10/6
 
-armPID = [1,0,0]
-armTolerance = 1
-pivotPID = [7.5,0,0]
-pivotFF = 1
-pivotTolerance = 0.5
+armPID = [1.5,0,0]
+armFF = 0.5
+armTolerance = 0.5
+pivotPID = [1.8,0,0]
+pivotFF = 0.5
+pivotTolerance = 0.1
 wristPID = [1,0,0]
 wristTolerance = 1
+
+
+post1Height = [0, 25, 20]
+post2Height = [0, 45, 45]
+post3Height = [270, 46, 42]
+post4Height = [270, 55, 55]

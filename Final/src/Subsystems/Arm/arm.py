@@ -2,10 +2,11 @@ from vex import *
 from constants import *
 
 class Arm ():
-    def __init__(self, armmotorL: Motor, armmotorR: Motor, pivotmotor: Motor, wristmotor: Motor):
+    def __init__(self, armmotorL: Motor, armmotorR: Motor, pivotmotorL: Motor, pivotmotorR: Motor, wristmotor: Motor):
         self.armmotorL = armmotorL
         self.armmotorR = armmotorR
-        self.pivotmotor = pivotmotor
+        self.pivotmotorL = pivotmotorL
+        self.pivotmotorR = pivotmotorR
         self.wristmotor = wristmotor
 
         self.armLength = 0
@@ -48,8 +49,8 @@ class Arm ():
             output = kp * error + ki * integral + kd * derivative
 
             # Spin the motor based on the PID output
-            self.armmotorR.spin(FORWARD, output, PERCENT)
             self.armmotorL.spin(FORWARD, output, PERCENT)
+            self.armmotorR.spin(FORWARD, output, PERCENT)
 
             # Update previous error
             prevError = error
@@ -61,7 +62,7 @@ class Arm ():
             # self.armmotorR.stop()
 
     def getAngle(self):
-        self.armAngle = self.pivotmotor.position(DEGREES) / pivotGearRatio
+        self.armAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
         return self.armAngle
     
     def setAngle(self):
@@ -87,12 +88,13 @@ class Arm ():
             derivative = error - prevError
             output = (kp * error + pivotFF*math.cos(math.radians(self.getAngle()))) + ki * integral + kd * derivative
             # Spin the motor based on the PID output
-            self.pivotmotor.spin(FORWARD, output, PERCENT)
+            self.pivotmotorL.spin(FORWARD, output, PERCENT)
+            self.pivotmotorR.spin(FORWARD, output, PERCENT)
 
             # Update previous error
             prevError = error
             
-            self.armAngle = self.pivotmotor.position(DEGREES) / pivotGearRatio
+            self.armAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
 
             # Stop the motor once the target is reached
             # self.pivotmotorL.stop()

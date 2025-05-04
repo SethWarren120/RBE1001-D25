@@ -1,7 +1,7 @@
 # Library imports
 from vex import *
-#from util import *
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
+from constants import *
 
 class TankDrivebase ():
 
@@ -10,16 +10,24 @@ class TankDrivebase ():
     wheelBase = 11
     circumference = math.pi * diameter
     
-    def __init__(self, _motorLeft, _motorRight, wheelDiameter, gearRatio, drivebaseWidth,
+    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, tagCamera: AiVision, camera: Vision, ultraSonic: Sonar, 
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
 
+        self.ultraSonic = ultraSonic
+
         self.diameter = wheelDiameter
-        self.gearing = gearRatio
-        self.wheelBase = drivebaseWidth
+        self.gearing = gear_ratio
+        self.wheelBase = track_width
         self.circumference = math.pi * wheelDiameter
         self.dpi = 360.0 / self.circumference
+
+        self.x = 0.0
+        self.y = 0.0
+        self.heading = 0.0
+
+        self.gyro = gyro
 
         self.rotationUnits = _rotationUnits
         self.speedUnits = _speedUnits
@@ -30,6 +38,8 @@ class TankDrivebase ():
             motorCorrectionConfig.units = _rotationUnits
 
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
+        
+        odometryThread = Thread(self.updateOdometry)
 
     def moveLen(self, len, speed):
         deg = 360 * ((len / self.circumference) * self.gearing)
@@ -56,3 +66,62 @@ class TankDrivebase ():
         else:
             self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
+    
+    def updateOdometry(self):
+        pass
+        # frontLeftDistance = self.motorLeft.position(DEGREES) / 360.0 * wheelCircumference
+        # frontRightDistance = self.motorRight.position(DEGREES) / 360.0 * wheelCircumference
+
+        # # Average the distances to calculate the robot's movement in local coordinates
+        # avgX = (frontLeftDistance - frontRightDistance) / 4.0
+        # avgY = (frontLeftDistance + frontRightDistance) / 4.0
+
+        # # Get the current heading from the gyro
+        # heading = self.gyro.heading(DEGREES)
+        # headingRadians = math.radians(heading)
+
+        # # Transform local movement to field coordinates
+        # deltaX = avgX * math.cos(headingRadians) - avgY * math.sin(headingRadians)
+        # deltaY = avgX * math.sin(headingRadians) + avgY * math.cos(headingRadians)
+
+        # # Update the robot's position
+        # self.x += deltaX
+        # self.y += deltaY
+        # self.heading = self.gyro.heading(DEGREES)
+
+        # aprilTags = self.tagCamera.take_snapshot(AiVision.ALL_TAGS)
+        # for tag in aprilTags:
+        #     location = tagLocations[tag.id-1]
+        #     tagX, tagY, tagAngle = location
+        #     observedX = tag.centerX
+        #     observedY = tag.centerY
+        #     observedAngle = tag.angle
+            
+        #     adjustedX = tagX - (tagCameraOffset[0] * math.cos(math.radians(self.heading)) - tagCameraOffset[1] * math.sin(math.radians(self.heading)))
+        #     adjustedY = tagY - (tagCameraOffset[0] * math.sin(math.radians(self.heading)) + tagCameraOffset[1] * math.cos(math.radians(self.heading)))
+            
+        #     self.x = adjustedX - observedX
+        #     self.y = adjustedY - observedY
+        #     self.heading = (tagAngle - observedAngle) % 360
+
+    def onLine(self, sensor):
+        whiteLineValue = 680
+        return sensor.reflectivity() < whiteLineValue
+    
+    def drive(self, speed, direction):
+        left_speed = speed - direction
+        right_speed = speed + direction
+
+        self.motorLeft.spin(FORWARD,left_speed)
+        self.motorRight.spin(FORWARD,right_speed)
+
+    def goUpRamp(self):
+        self.motorLeft.spin(FORWARD, -50)
+        self.motorRight.spin(FORWARD, -50)
+        while self.gyro.orientation(OrientationType.ROLL) < 0:
+            rightError = self.ultraSonic.distance(INCHES) - 3.2
+            self.drive(-100, -drivePID[0]*rightError)
+            wait(20)
+
+        self.motorLeft.stop()
+        self.motorRight.stop()
