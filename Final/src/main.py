@@ -33,14 +33,12 @@ inertial = Inertial(Ports.PORT1)
 inertial.set_heading(180, DEGREES)
 inertial.calibrate()
 
-camera = Vision(Ports.PORT6, 50)
-
-tagCamera = AiVision(Ports.PORT2, 8)
-tagCamera.start_awb()
+camera = AiVision(Ports.PORT2, vision_Yellow, vision_Green, vision_Orange, vision_Pink, vision_GreenBox, vision_YellowBox, vision_OrangeBox, AiVision.ALL_TAGS)
+camera.start_awb()
 
 controller = Controller()
 
-drivebase = TankDrivebase(motorLeft, motorRight, inertial, tagCamera, camera, sideUltrasonic)
+drivebase = TankDrivebase(motorLeft, motorRight, inertial, camera, sideUltrasonic)
 intake = Intake(intake_motor)
 arm = Arm(arm_motorL, arm_motorR, pivot_motorL, pivot_motorR, wrist_motor)
 
@@ -51,17 +49,30 @@ def printDebugging():
         brain.screen.print_at(arm.getLength(), x=1, y=60)
         brain.screen.print_at(arm.getAngle(), x=1, y=80)
         brain.screen.print_at(arm.getWristAngle(), x=1, y=100)
+
+        try:
+            brain.screen.print_at(camera.largestObject.centerX, x=1, y=120)
+            brain.screen.print_at(camera.largest_object().centerY, x=1, y=140)
+        except:
+            pass
         sleep(20)
 
 debugThread = Thread(printDebugging)
 
 while inertial.is_calibrating():
-    sleep(10)
+    sleep(1)
 # drivebase.goUpRamp()
 
-# drivebase.drive(50,0)
-arm.setSetpoint(270, 46, 42)
-intake.runIntake(FORWARD)
+# arm.setSetpoint(post4Height[0], post4Height[1], post4Height[2])
+drivebase.centerToObject()
+# intake.intakeUntilCurrent()
+# wait(1000)
+# drivebase.centerToObject()
+
+# arm.setSetpoint(270, 46, 42)
+# intake.runIntake(FORWARD)
+# wait(2000)
+# stowArm()
 # wait(2000)
 # arm.setSetpoint(0, 0, 0)
 # drivebase.moveLen(100, 200)

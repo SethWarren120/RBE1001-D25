@@ -106,7 +106,7 @@ class Arm ():
     
     def setWristAngle(self):
         while True:
-            targetAngle = self.clamp(self.dWrist, minWristAngle, maxWristAngle)
+            targetAngle = self.dWrist
 
             # PID variables
             kp, ki, kd = wristPID

@@ -4,9 +4,9 @@ from vex import *
 #drive constants
 wheelDiameter = 4.0
 wheel_travel = math.pi*wheelDiameter
-track_width = 11
-wheel_base = 11
-gear_ratio = 5
+track_width = 15
+wheel_base = 9.5
+gear_ratio = 1
 wheelCircumference = 3.14 * wheelDiameter 
 degreesPerInch = 360.0 / wheelCircumference
 
@@ -18,19 +18,19 @@ drivePID = [0.01,0,0]
 tagCameraOffset = [0, 0, 0, 0, 0, 0] #inches
 objCameraOffset = [0, 0, 0, 0, 0, 0] #inches
 
-vision_orange = Colordesc(1,245,134,89,5,0.17)
-vision_yellow = Colordesc(1,245,134,89,5,0.17)
-vision_green = Colordesc(1,245,134,89,5,0.17)
+vision_Yellow = Colordesc(2, 119, 69, 36, 8, 0.25)
+vision_Green = Colordesc(3, 18, 110, 45, 14, 0.44)
+vision_Orange = Colordesc(1, 226, 149, 134, 10, 0.2)
+vision_Pink = Colordesc(3, 232, 78, 146, 11, 0.13)
 
-tagCameraWidth = 320
-tagCameraHeight = 240
-tagCameraXOffset = tagCameraWidth/2
-tagCameraYOffset = tagCameraHeight/2
+vision_GreenBox = Codedesc(1, vision_Pink, vision_Green)
+vision_YellowBox = Codedesc(2, vision_Pink, vision_Yellow)
+vision_OrangeBox = Codedesc(3, vision_Pink, vision_Orange)
 
-objCameraWidth = 320
-objCameraHeight = 240
-objCameraXOffset = objCameraWidth/2
-objCameraYOffset = objCameraHeight/2
+cameraWidth = 320
+cameraHeight = 240
+cameraXOffset = cameraWidth/2
+cameraYOffset = cameraHeight/2
 
 fruitHeight1 = 5 #inches
 fruitHeight2 = 10 #inches
@@ -104,9 +104,6 @@ maxArmLength = 270
 minArmAngle = 1
 maxArmAngle = 90
 
-minWristAngle = 2
-maxWristAngle = 180
-
 armGearRatio = 12/6
 pivotGearRatio = 72/12
 wristGearRatio = 10/6
@@ -124,4 +121,4 @@ wristTolerance = 1
 post1Height = [0, 25, 20]
 post2Height = [0, 45, 45]
 post3Height = [270, 46, 42]
-post4Height = [270, 55, 55]
+post4Height = [270, 50, 55]

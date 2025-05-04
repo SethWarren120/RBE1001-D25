@@ -13,4 +13,4 @@ def setSubsystems(driveBase: TankDrivebase, arm: Arm, intake: Intake):
 
 def stowArm():
     intakeSub.stopIntake()
-    armSub.setSetpoint(minArmLength, minArmAngle, minWristAngle)
+    armSub.setSetpoint(minArmLength, minArmAngle, 0)

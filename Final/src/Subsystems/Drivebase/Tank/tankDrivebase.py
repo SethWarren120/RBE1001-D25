@@ -10,12 +10,13 @@ class TankDrivebase ():
     wheelBase = 11
     circumference = math.pi * diameter
     
-    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, tagCamera: AiVision, camera: Vision, ultraSonic: Sonar, 
+    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, camera: AiVision, ultraSonic: Sonar, 
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
 
         self.ultraSonic = ultraSonic
+        self.camera = camera
 
         self.diameter = wheelDiameter
         self.gearing = gear_ratio
@@ -114,6 +115,52 @@ class TankDrivebase ():
 
         self.motorLeft.spin(FORWARD,left_speed)
         self.motorRight.spin(FORWARD,right_speed)
+
+    def turn(self, speed, degrees):
+        # self.motorLeft.spin(FORWARD, -speed)
+        # self.motorRight.spin(FORWARD, speed)
+        pass
+
+    def centerToObject(self):
+        while True:
+            object = None
+            #loops until it finds an object
+            while True:
+                objectsGreen = self.camera.take_snapshot(vision_Green)
+                objectsOrange = self.camera.take_snapshot(vision_Orange)
+                objectsYellow = self.camera.take_snapshot(vision_Yellow)
+
+                print(objectsOrange)
+
+                largestwidth = 0
+                for tobject in objectsGreen:
+                    if tobject.width > largestwidth:
+                        largestwidth = tobject.width
+                        object = tobject
+                        print("largest is green")
+                for tobject in objectsOrange:
+                    if tobject.width > largestwidth:
+                        largestwidth = tobject.width
+                        object = tobject
+                        print("largest is orange")
+                for tobject in objectsYellow:
+                    if tobject.width > largestwidth:
+                        largestwidth = tobject.width
+                        object = tobject
+                        print("largest is yellow")
+
+                if object != None:
+                    break
+            
+            x = object.centerX
+
+            #the camera outputs with 0,0 being the top right of the camera
+            #this code moves 0,0 to the center of the camera
+            correctedX = x + cameraXOffset
+            
+            print("turning")
+            #drives the wheels to get the object to the center of the camera
+            self.turn(10, correctedX)
 
     def goUpRamp(self):
         self.motorLeft.spin(FORWARD, -50)
