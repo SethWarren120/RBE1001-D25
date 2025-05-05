@@ -41,6 +41,18 @@ class TankDrivebase ():
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
         
         odometryThread = Thread(self.updateOdometry)
+    
+    def drive(self, speed, direction):
+        left_speed = speed - direction
+        right_speed = speed + direction
+
+        self.motorLeft.spin(FORWARD,left_speed)
+        self.motorRight.spin(FORWARD,right_speed)
+        
+    def turn(self, heading):
+        # self.motorLeft.spin(FORWARD, -speed)
+        # self.motorRight.spin(FORWARD, speed)
+        pass
 
     def moveLen(self, len, speed):
         deg = 360 * ((len / self.circumference) * self.gearing)
@@ -108,18 +120,6 @@ class TankDrivebase ():
     def onLine(self, sensor):
         whiteLineValue = 680
         return sensor.reflectivity() < whiteLineValue
-    
-    def drive(self, speed, direction):
-        left_speed = speed - direction
-        right_speed = speed + direction
-
-        self.motorLeft.spin(FORWARD,left_speed)
-        self.motorRight.spin(FORWARD,right_speed)
-
-    def turn(self, speed, degrees):
-        # self.motorLeft.spin(FORWARD, -speed)
-        # self.motorRight.spin(FORWARD, speed)
-        pass
 
     def centerToObject(self):
         while True:
