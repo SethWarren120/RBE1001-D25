@@ -121,9 +121,9 @@ degreesPerInch = 360.0 / wheelCircumference
 drivePID = [0.01,0,0]
 tagCameraOffset = [0, 0, 0, 0, 0, 0] #inches
 objCameraOffset = [0, 0, 0, 0, 0, 0] #inches
-vision_Yellow = Colordesc(2, 119, 69, 36, 8, 0.25)
-vision_Green = Colordesc(3, 18, 110, 45, 14, 0.44)
-vision_Orange = Colordesc(1, 226, 149, 134, 10, 0.2)
+vision_Yellow = Colordesc(2, 140, 106, 60, 7, 0.37)
+vision_Green = Colordesc(3, 14, 143, 61, 15, 0.41)
+vision_Orange = Colordesc(1, 232, 152, 138, 10, 0.12)
 vision_Pink = Colordesc(3, 232, 78, 146, 11, 0.13)
 vision_GreenBox = Codedesc(1, vision_Pink, vision_Green)
 vision_YellowBox = Codedesc(2, vision_Pink, vision_Yellow)
@@ -132,6 +132,8 @@ cameraWidth = 320
 cameraHeight = 240
 cameraXOffset = cameraWidth/2
 cameraYOffset = cameraHeight/2
+cameraFOV = 61 #degrees
+cameraVerticalFOV = 41 #degrees
 fruitHeight1 = 5 #inches
 fruitHeight2 = 10 #inches
 tag1 = [0,0,0]
@@ -166,15 +168,15 @@ tagLocations = [tag1,
                 tag14,
                 tag15,
                 tag16]
-post1Location = [50,50]
-post2Location = [50,50]
-post3Location = [50,50]
-post4Location = [50,50]
-post5Location = [50,50]
-post6Location = [50,50]
-post7Location = [50,50]
-post8Location = [50,50]
-post9Location = [50,50]
+post1Location = [-10,10]
+post2Location = [0,10]
+post3Location = [10,10]
+post4Location = [-10,0]
+post5Location = [0,0]
+post6Location = [10,0]
+post7Location = [-10,-10]
+post8Location = [0,-10]
+post9Location = [10,-10]
 posts = [post1Location, post2Location, post3Location,
          post4Location, post5Location, post6Location,
          post7Location, post8Location, post9Location]
@@ -195,13 +197,13 @@ armGearRatio = 12/6
 pivotGearRatio = 72/12
 wristGearRatio = 10/6
 armPID = [1.5,0,0]
-armFF = 0.5
+armFF = 0.1
 armTolerance = 0.5
 pivotPID = [1.8,0,0]
-pivotFF = 0.5
-pivotTolerance = 0.1
+pivotFF = 0.1
+pivotTolerance = 0.2
 wristPID = [1,0,0]
-wristTolerance = 1
+wristTolerance = 0.5
 post1Height = [0, 25, 20]
 post2Height = [0, 45, 45]
 post3Height = [270, 46, 42]
@@ -358,15 +360,21 @@ class Arm ():
             self.armAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
     def getWristAngle(self):
         self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
-        return self.wristmotor.position(DEGREES) / wristGearRatio
+        return self.wristAngle
     def setWristAngle(self):
         while True:
-            targetAngle = self.dWrist
+            targetAngle = self.dWrist % 360
+            if targetAngle > 180:
+                targetAngle -= 360
             kp, ki, kd = wristPID
             integral = 0
             prevError = 0
             currentAngle = self.getWristAngle()
             error = targetAngle - currentAngle
+            if error > 180:
+                error -= 360
+            elif error < -180:
+                error += 360
             integral += error
             derivative = error - prevError
             output = kp * error + ki * integral + kd * derivative
@@ -376,9 +384,20 @@ class Arm ():
     def clamp(self, value, min_value, max_value):
         return max(min_value, min(value, max_value))
     def setSetpoint(self, length, angle, wristAngle):
-        self.dLength = length
         self.dAngle = angle
+        self.dLength = length
         self.dWrist = wristAngle
+    def stowArm(self):
+        if (abs(self.getWristAngle()) < abs(self.getWristAngle()-180)):
+            self.setSetpoint(self.getLength(), self.getAngle(), 0)
+        else:
+            self.setSetpoint(self.getLength(), self.getAngle(), 180)
+        while(abs(self.getWristAngle()-self.dWrist) > wristTolerance):
+            sleep(1)
+        self.setSetpoint(0, self.getAngle(), self.getWristAngle())
+        while(abs(self.getLength()-self.dLength) > armTolerance):
+            sleep(1)
+        self.setSetpoint(0, 0, self.getWristAngle())
 class Intake ():
     def __init__(self, intakemotor: Motor):
         self.intakemotor = intakemotor
@@ -393,18 +412,62 @@ class Intake ():
         self.escapeLoop = True
         self.intakemotor.stop()
         self.escapeLoop = False
-    def intakeUntilCurrent(self):
-        while self.intakemotor.current() < 0.5 or self.escapeLoop == False:
-            self.runIntake("reverse")
+    def runTimeThread(self, direction, time):
+        self.runIntake(direction)
+        sleep(time)
         self.stopIntake()
+    def runIntakeForTime(self, direction, time):
+        intakeTimeThread = Thread(lambda: self.runTimeThread(direction, time))
 def setSubsystems(driveBase: TankDrivebase, arm: Arm, intake: Intake):
     global driveSub, armSub, intakeSub, forksSub
     driveSub = driveBase
     armSub = arm
     intakeSub = intake
-def stowArm():
-    intakeSub.stopIntake()
-    armSub.setSetpoint(minArmLength, minArmAngle, 0)
+tracking_enabled = False
+def startObjectTracking():
+    global tracking_enabled
+    tracking_enabled = True
+    tracking_thread = Thread(continuousArmTracking)
+def stopObjectTracking():
+    global tracking_enabled
+    tracking_enabled = False
+def continuousArmTracking():
+    global tracking_enabled
+    while tracking_enabled:
+        findAndAimAtObject()
+        wait(50)
+def findAndAimAtObject():
+    object = None
+    objectsGreen = driveSub.camera.take_snapshot(vision_Green)
+    objectsOrange = driveSub.camera.take_snapshot(vision_Orange)
+    objectsYellow = driveSub.camera.take_snapshot(vision_Yellow)
+    largestwidth = 0
+    for tobject in objectsGreen:
+        if tobject.width > largestwidth:
+            largestwidth = tobject.width
+            object = tobject
+    for tobject in objectsOrange:
+        if tobject.width > largestwidth:
+            largestwidth = tobject.width
+            object = tobject
+    for tobject in objectsYellow:
+        if tobject.width > largestwidth:
+            largestwidth = tobject.width
+            object = tobject
+    if object is None:
+        return
+    y = object.centerY
+    correctedY = cameraYOffset - y
+    angleAdjustment = correctedY * (pivotPID[0] / (cameraHeight / 2))
+    currentAngle = armSub.getAngle()
+    targetAngle = currentAngle + angleAdjustment
+    armSub.setSetpoint(
+        armSub.getLength(),
+        targetAngle,
+        armSub.getWristAngle()
+    )
+def angleArmToObject():
+    startObjectTracking()
 brain=Brain()
 motorLeft = Motor(Ports.PORT20, 18_1, False)
 motorRight = Motor(Ports.PORT10, 18_1, True)
@@ -430,13 +493,13 @@ def printDebugging():
         brain.screen.print_at(arm.getLength(), x=1, y=60)
         brain.screen.print_at(arm.getAngle(), x=1, y=80)
         brain.screen.print_at(arm.getWristAngle(), x=1, y=100)
-        try:
-            brain.screen.print_at(camera.largestObject.centerX, x=1, y=120)
-            brain.screen.print_at(camera.largest_object().centerY, x=1, y=140)
-        except:
-            pass
         sleep(20)
 debugThread = Thread(printDebugging)
 while inertial.is_calibrating():
     sleep(1)
-drivebase.centerToObject()
+arm.setSetpoint(0,50,0)
+while (abs(arm.getAngle()-50) > armTolerance):
+    sleep(1)
+arm.setSetpoint(200,50,50)
+wait(1000)
+arm.stowArm()

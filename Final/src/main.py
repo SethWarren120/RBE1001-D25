@@ -49,35 +49,18 @@ def printDebugging():
         brain.screen.print_at(arm.getLength(), x=1, y=60)
         brain.screen.print_at(arm.getAngle(), x=1, y=80)
         brain.screen.print_at(arm.getWristAngle(), x=1, y=100)
-
-        try:
-            brain.screen.print_at(camera.largestObject.centerX, x=1, y=120)
-            brain.screen.print_at(camera.largest_object().centerY, x=1, y=140)
-        except:
-            pass
         sleep(20)
 
 debugThread = Thread(printDebugging)
 
 while inertial.is_calibrating():
     sleep(1)
-# drivebase.goUpRamp()
 
-# arm.setSetpoint(post4Height[0], post4Height[1], post4Height[2])
-drivebase.centerToObject()
-# intake.intakeUntilCurrent()
-# wait(1000)
-# drivebase.centerToObject()
+# angleArmToObject()
+arm.setSetpoint(0,50,0)
+while (abs(arm.getAngle()-50) > armTolerance):
+    sleep(1)
 
-# arm.setSetpoint(270, 46, 42)
-# intake.runIntake(FORWARD)
-# wait(2000)
-# stowArm()
-# wait(2000)
-# arm.setSetpoint(0, 0, 0)
-# drivebase.moveLen(100, 200)
-# arm.setSetpoint(270, 40, 0)
-# wait(500)
-# stowArm()
-# controller.buttonA.pressed(lambda: arm.setSetpoint(0, 50, 0))
-# controller.buttonA.released(lambda: arm.setSetpoint(0, 0, 0))
+arm.setSetpoint(200,50,50)
+wait(1000)
+arm.stowArm()

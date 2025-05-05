@@ -6,7 +6,7 @@ class Intake ():
         self.intakemotor.set_velocity(100, PERCENT)
 
         self.escapeLoop = False
-
+        
     def runIntake(self, direction):
         if direction == FORWARD:
             self.intakemotor.spin(FORWARD)
@@ -18,7 +18,10 @@ class Intake ():
         self.intakemotor.stop()
         self.escapeLoop = False
 
-    def intakeUntilCurrent(self):
-        while self.intakemotor.current() < 0.5 or self.escapeLoop == False:
-            self.runIntake("reverse")
+    def runTimeThread(self, direction, time):
+        self.runIntake(direction)
+        sleep(time)
         self.stopIntake()
+
+    def runIntakeForTime(self, direction, time):
+        intakeTimeThread = Thread(lambda: self.runTimeThread(direction, time))
