@@ -160,7 +160,7 @@ class TankDrivebase ():
             
             print("turning")
             #drives the wheels to get the object to the center of the camera
-            self.turn(10, correctedX)
+            self.turn(correctedX)
 
     def goUpRamp(self):
         self.motorLeft.spin(FORWARD, -50)

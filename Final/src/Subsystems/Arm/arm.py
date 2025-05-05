@@ -29,6 +29,9 @@ class Arm ():
         while True:
             targetLength = self.clamp(self.dLength, minArmLength, maxArmLength)
 
+            if (abs(self.getAngle()-self.dAngle) > pivotTolerance*5):
+                targetLength = self.getLength()
+
             kp, ki, kd = armPID
             integral = 0
             prevError = 0
@@ -40,8 +43,12 @@ class Arm ():
             derivative = error - prevError
             output = kp * error + ki * integral + kd * derivative
 
-            self.armmotorL.spin(FORWARD, output, PERCENT)
-            self.armmotorR.spin(FORWARD, output, PERCENT)
+            if (self.armmotorL.torque() > 1.2 or self.armmotorL.torque() > 1.2):
+                self.armmotorR.set_position(0, DEGREES)
+                self.armmotorL.set_position(0, DEGREES)
+            else:
+                self.armmotorL.spin(FORWARD, output, PERCENT)
+                self.armmotorR.spin(FORWARD, output, PERCENT)
 
             prevError = error
 
@@ -65,9 +72,13 @@ class Arm ():
             integral += error
             derivative = error - prevError
             output = (kp * error + pivotFF*math.cos(math.radians(self.getAngle()))) + ki * integral + kd * derivative
-
-            self.pivotmotorL.spin(FORWARD, output, PERCENT)
-            self.pivotmotorR.spin(FORWARD, output, PERCENT)
+            
+            if (self.pivotmotorL.torque() > 1.1 or self.pivotmotorR.torque() > 1.1):
+                self.pivotmotorR.set_position(0, DEGREES)
+                self.pivotmotorL.set_position(0, DEGREES)
+            else:
+                self.pivotmotorL.spin(FORWARD, output, PERCENT)
+                self.pivotmotorR.spin(FORWARD, output, PERCENT)
 
             prevError = error
             
@@ -82,6 +93,9 @@ class Arm ():
             targetAngle = self.dWrist % 360
             if targetAngle > 180:
                 targetAngle -= 360
+            
+            if (self.getLength() < 175 and (self.dWrist < 0 or self.dWrist > 180)):
+                targetAngle = self.getWristAngle()
 
             kp, ki, kd = wristPID
             integral = 0

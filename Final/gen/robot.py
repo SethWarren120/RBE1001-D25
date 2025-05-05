@@ -134,6 +134,8 @@ cameraXOffset = cameraWidth/2
 cameraYOffset = cameraHeight/2
 cameraFOV = 61 #degrees
 cameraVerticalFOV = 41 #degrees
+visionFruitSizeThreshold = 30
+visionContinuityTolerance = 5
 fruitHeight1 = 5 #inches
 fruitHeight2 = 10 #inches
 tag1 = [0,0,0]
@@ -168,27 +170,6 @@ tagLocations = [tag1,
                 tag14,
                 tag15,
                 tag16]
-post1Location = [-10,10]
-post2Location = [0,10]
-post3Location = [10,10]
-post4Location = [-10,0]
-post5Location = [0,0]
-post6Location = [10,0]
-post7Location = [-10,-10]
-post8Location = [0,-10]
-post9Location = [10,-10]
-posts = [post1Location, post2Location, post3Location,
-         post4Location, post5Location, post6Location,
-         post7Location, post8Location, post9Location]
-rollerDiameter = 2.5 #inches
-rollerGearRatio = 5
-forksGearRatio = 5
-lowFruitHeight = 5 #inches
-lowFruitAngle = 45 #degrees
-highFruitHeight = 10 #inches
-highFruitAngle = 90 #degrees
-lowFruitWristAngle = 5 #degrees
-highFruitWristAngle = 10 #degrees
 minArmLength = 0
 maxArmLength = 270
 minArmAngle = 1
@@ -200,7 +181,7 @@ armPID = [1.5,0,0]
 armFF = 0.1
 armTolerance = 0.5
 pivotPID = [1.8,0,0]
-pivotFF = 0.1
+pivotFF = 0.2
 pivotTolerance = 0.2
 wristPID = [1,0,0]
 wristTolerance = 0.5
@@ -208,6 +189,26 @@ post1Height = [0, 25, 20]
 post2Height = [0, 45, 45]
 post3Height = [270, 46, 42]
 post4Height = [270, 50, 55]
+fruitAlignmentPID = [0.1, 0, 0]
+fruitAlignmentTolerance = 10
+Lines = [[0, 0, 36, 0], [36, 0, 36, 60], [36, 60, 0, 60], [0, 60, 0, 0], 
+         [36, 20, 24, 20], [36, 40, 24, 40], [0, 40, 12, 40], [0, 20, 12, 20]]
+LineConnections = [[-1, [36, 0], -1, [0, 0], -1, -1, -1, -1],
+                   [[36, 0], -1, [36, 60], -1, [36, 20], [36, 40], -1, -1],
+                   [-1, [36, 60], -1, [0, 60], -1, -1, -1, -1],
+                   [[0, 0], -1, [0, 60], -1, -1, -1, [0, 40], [0, 20]],
+                   [-1, [36, 20], -1, -1, -1, -1, -1, -1],
+                   [-1, [36, 40], -1, -1, -1, -1, -1, -1],
+                   [-1, -1, -1, [0, 40], -1, -1, -1, -1],
+                   [-1, -1, -1, [0, 20], -1, -1, -1, -1]]
+LineNav = [[[0], [1], [1, 2], [3], [1, 4], [1, 5], [3, 6], [3, 7]],
+           [[0], [1], [2], [0, 3], [4], [5], [2, 3, 6], [0, 3, 7]],
+           [[3, 0], [1], [2], [3], [1, 4], [1, 5], [3, 6], [3, 7]],
+           [[0], [0, 1], [2], [3], [0, 1, 4], [2, 1, 5], [6], [7]],
+           [[1, 0], [1], [1, 2], [1, 0, 3], [4], [1, 5], [1, 0, 3, 6], [1, 0, 3, 7]],
+           [[1, 0], [1], [1, 2], [1, 2, 3], [1, 4], [5], [1, 2, 3, 6], [1, 2, 3, 7]],
+           [[3, 0], [3, 2, 1], [3, 2], [3], [3, 2, 1, 4], [3, 2, 1, 5], [6], [3, 7]],
+           [[3, 0], [3, 0, 1], [3, 2], [3], [3, 0, 1, 4], [3, 0, 1, 5], [3, 6], [7]]]
 class TankDrivebase ():
     diameter = 4
     gearing = 5 / 1
@@ -236,6 +237,13 @@ class TankDrivebase ():
             motorCorrectionConfig.units = _rotationUnits
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
         odometryThread = Thread(self.updateOdometry)
+    def drive(self, speed, direction):
+        left_speed = speed - direction
+        right_speed = speed + direction
+        self.motorLeft.spin(FORWARD,left_speed)
+        self.motorRight.spin(FORWARD,right_speed)
+    def turn(self, heading):
+        pass
     def moveLen(self, len, speed):
         deg = 360 * ((len / self.circumference) * self.gearing)
         self.motorCorrector.setPassiveMode(False)
@@ -260,13 +268,6 @@ class TankDrivebase ():
     def onLine(self, sensor):
         whiteLineValue = 680
         return sensor.reflectivity() < whiteLineValue
-    def drive(self, speed, direction):
-        left_speed = speed - direction
-        right_speed = speed + direction
-        self.motorLeft.spin(FORWARD,left_speed)
-        self.motorRight.spin(FORWARD,right_speed)
-    def turn(self, speed, degrees):
-        pass
     def centerToObject(self):
         while True:
             object = None
@@ -296,7 +297,7 @@ class TankDrivebase ():
             x = object.centerX
             correctedX = x + cameraXOffset
             print("turning")
-            self.turn(10, correctedX)
+            self.turn(correctedX)
     def goUpRamp(self):
         self.motorLeft.spin(FORWARD, -50)
         self.motorRight.spin(FORWARD, -50)
@@ -328,6 +329,8 @@ class Arm ():
     def setLength(self):
         while True:
             targetLength = self.clamp(self.dLength, minArmLength, maxArmLength)
+            if (abs(self.getAngle()-self.dAngle) > pivotTolerance*5):
+                targetLength = self.getLength()
             kp, ki, kd = armPID
             integral = 0
             prevError = 0
@@ -338,6 +341,9 @@ class Arm ():
             output = kp * error + ki * integral + kd * derivative
             self.armmotorL.spin(FORWARD, output, PERCENT)
             self.armmotorR.spin(FORWARD, output, PERCENT)
+            if (self.armmotorL.torque() > 1.2 or self.armmotorL.torque() > 1.2):
+                self.armmotorR.set_position(0, DEGREES)
+                self.armmotorL.set_position(0, DEGREES)
             prevError = error
             self.armLength = self.armmotorL.position(DEGREES) / armGearRatio
     def getAngle(self):
@@ -354,8 +360,12 @@ class Arm ():
             integral += error
             derivative = error - prevError
             output = (kp * error + pivotFF*math.cos(math.radians(self.getAngle()))) + ki * integral + kd * derivative
-            self.pivotmotorL.spin(FORWARD, output, PERCENT)
-            self.pivotmotorR.spin(FORWARD, output, PERCENT)
+            if (self.pivotmotorL.torque() > 1.1 or self.pivotmotorR.torque() > 1.1):
+                self.pivotmotorR.set_position(0, DEGREES)
+                self.pivotmotorL.set_position(0, DEGREES)
+            else:
+                self.pivotmotorL.spin(FORWARD, output, PERCENT)
+                self.pivotmotorR.spin(FORWARD, output, PERCENT)
             prevError = error
             self.armAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
     def getWristAngle(self):
@@ -366,6 +376,8 @@ class Arm ():
             targetAngle = self.dWrist % 360
             if targetAngle > 180:
                 targetAngle -= 360
+            if (self.getLength() < 175 and (self.dWrist < 0 or self.dWrist > 180)):
+                targetAngle = self.getWristAngle()
             kp, ki, kd = wristPID
             integral = 0
             prevError = 0
@@ -468,6 +480,14 @@ def findAndAimAtObject():
     )
 def angleArmToObject():
     startObjectTracking()
+def grabObject():
+    armSub.setSetpoint(0, 50, 0)
+    wait(1000)
+    armSub.setSetpoint(50, 50, 0)
+    wait(1000)
+    armSub.setSetpoint(50, 50, armSub.getAngle())
+    intakeSub.runIntakeForTime(FORWARD, 1000)
+    armSub.stowArm()
 brain=Brain()
 motorLeft = Motor(Ports.PORT20, 18_1, False)
 motorRight = Motor(Ports.PORT10, 18_1, True)
@@ -493,13 +513,11 @@ def printDebugging():
         brain.screen.print_at(arm.getLength(), x=1, y=60)
         brain.screen.print_at(arm.getAngle(), x=1, y=80)
         brain.screen.print_at(arm.getWristAngle(), x=1, y=100)
+        brain.screen.print_at(arm.pivotmotorR.torque(), x=1, y=120)
         sleep(20)
 debugThread = Thread(printDebugging)
 while inertial.is_calibrating():
     sleep(1)
-arm.setSetpoint(0,50,0)
-while (abs(arm.getAngle()-50) > armTolerance):
-    sleep(1)
-arm.setSetpoint(200,50,50)
-wait(1000)
+arm.setSetpoint(180,50,-50)
+wait(3000)
 arm.stowArm()

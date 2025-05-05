@@ -49,6 +49,8 @@ def printDebugging():
         brain.screen.print_at(arm.getLength(), x=1, y=60)
         brain.screen.print_at(arm.getAngle(), x=1, y=80)
         brain.screen.print_at(arm.getWristAngle(), x=1, y=100)
+
+        brain.screen.print_at(arm.pivotmotorR.torque(), x=1, y=120)
         sleep(20)
 
 debugThread = Thread(printDebugging)
@@ -57,10 +59,10 @@ while inertial.is_calibrating():
     sleep(1)
 
 # angleArmToObject()
-arm.setSetpoint(0,50,0)
-while (abs(arm.getAngle()-50) > armTolerance):
-    sleep(1)
-
-arm.setSetpoint(200,50,50)
-wait(1000)
+# grabObject()
+arm.setSetpoint(180,50,-50)
+# while (abs(arm.getAngle()-50) > armTolerance):
+#     sleep(1)
+# arm.setSetpoint(200,50,50)
+wait(3000)
 arm.stowArm()

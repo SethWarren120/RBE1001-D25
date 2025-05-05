@@ -70,3 +70,13 @@ def findAndAimAtObject():
 
 def angleArmToObject():
     startObjectTracking()
+
+def grabObject():
+    # angleArmToObject()
+    armSub.setSetpoint(0, 50, 0)
+    wait(1000)
+    armSub.setSetpoint(50, 50, 0)
+    wait(1000)
+    armSub.setSetpoint(50, 50, armSub.getAngle())
+    intakeSub.runIntakeForTime(FORWARD, 1000)
+    armSub.stowArm()

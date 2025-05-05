@@ -76,33 +76,6 @@ tagLocations = [tag1,
                 tag15,
                 tag16]
 
-#x y (inches)
-post1Location = [-10,10]
-post2Location = [0,10]
-post3Location = [10,10]
-post4Location = [-10,0]
-post5Location = [0,0]
-post6Location = [10,0]
-post7Location = [-10,-10]
-post8Location = [0,-10]
-post9Location = [10,-10]
-posts = [post1Location, post2Location, post3Location,
-         post4Location, post5Location, post6Location,
-         post7Location, post8Location, post9Location]
-
-#roller constants
-rollerDiameter = 2.5 #inches
-rollerGearRatio = 5
-forksGearRatio = 5
-
-#arm constants
-lowFruitHeight = 5 #inches
-lowFruitAngle = 45 #degrees
-highFruitHeight = 10 #inches
-highFruitAngle = 90 #degrees
-lowFruitWristAngle = 5 #degrees
-highFruitWristAngle = 10 #degrees
-
 minArmLength = 0
 maxArmLength = 270
 
@@ -117,11 +90,10 @@ armPID = [1.5,0,0]
 armFF = 0.1
 armTolerance = 0.5
 pivotPID = [1.8,0,0]
-pivotFF = 0.1
+pivotFF = 0.09
 pivotTolerance = 0.2
 wristPID = [1,0,0]
 wristTolerance = 0.5
-
 
 post1Height = [0, 25, 20]
 post2Height = [0, 45, 45]
