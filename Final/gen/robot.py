@@ -181,7 +181,7 @@ armPID = [1.5,0,0]
 armFF = 0.1
 armTolerance = 0.5
 pivotPID = [1.8,0,0]
-pivotFF = 0.2
+pivotFF = 0.09
 pivotTolerance = 0.2
 wristPID = [1,0,0]
 wristTolerance = 0.5
@@ -264,7 +264,28 @@ class TankDrivebase ():
             self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
     def updateOdometry(self):
-        pass
+        while True:
+            leftDistance = self.motorLeft.position(DEGREES) / 360.0 * self.circumference
+            rightDistance = self.motorRight.position(DEGREES) / 360.0 * self.circumference
+            avgDistance = (leftDistance + rightDistance) / 2.0
+            headingRadians = math.radians(self.gyro.heading(DEGREES))
+            deltaX = avgDistance * math.cos(headingRadians)
+            deltaY = avgDistance * math.sin(headingRadians)
+            self.x += deltaX
+            self.y += deltaY
+            self.heading = self.gyro.heading(DEGREES)
+            aprilTags = self.camera.take_snapshot(AiVision.ALL_TAGS)
+            for tag in aprilTags:
+                location = tagLocations[tag.id-1]
+                tagX, tagY, tagAngle = location
+                observedX = tag.centerX
+                observedY = tag.centerY
+                observedAngle = tag.angle
+                adjustedX = tagX - (tagCameraOffset[0] * math.cos(math.radians(self.heading)) - tagCameraOffset[1] * math.sin(math.radians(self.heading)))
+                adjustedY = tagY - (tagCameraOffset[0] * math.sin(math.radians(self.heading)) + tagCameraOffset[1] * math.cos(math.radians(self.heading)))
+                self.x = adjustedX - observedX
+                self.y = adjustedY - observedY
+                self.heading = (tagAngle - observedAngle) % 360
     def onLine(self, sensor):
         whiteLineValue = 680
         return sensor.reflectivity() < whiteLineValue
@@ -339,11 +360,12 @@ class Arm ():
             integral += error
             derivative = error - prevError
             output = kp * error + ki * integral + kd * derivative
-            self.armmotorL.spin(FORWARD, output, PERCENT)
-            self.armmotorR.spin(FORWARD, output, PERCENT)
             if (self.armmotorL.torque() > 1.2 or self.armmotorL.torque() > 1.2):
                 self.armmotorR.set_position(0, DEGREES)
                 self.armmotorL.set_position(0, DEGREES)
+            else:
+                self.armmotorL.spin(FORWARD, output, PERCENT)
+                self.armmotorR.spin(FORWARD, output, PERCENT)
             prevError = error
             self.armLength = self.armmotorL.position(DEGREES) / armGearRatio
     def getAngle(self):

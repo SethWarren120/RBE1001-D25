@@ -81,41 +81,35 @@ class TankDrivebase ():
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
     
     def updateOdometry(self):
-        pass
-        # frontLeftDistance = self.motorLeft.position(DEGREES) / 360.0 * wheelCircumference
-        # frontRightDistance = self.motorRight.position(DEGREES) / 360.0 * wheelCircumference
+        while True:
+            leftDistance = self.motorLeft.position(DEGREES) / 360.0 * self.circumference
+            rightDistance = self.motorRight.position(DEGREES) / 360.0 * self.circumference
 
-        # # Average the distances to calculate the robot's movement in local coordinates
-        # avgX = (frontLeftDistance - frontRightDistance) / 4.0
-        # avgY = (frontLeftDistance + frontRightDistance) / 4.0
+            avgDistance = (leftDistance + rightDistance) / 2.0
 
-        # # Get the current heading from the gyro
-        # heading = self.gyro.heading(DEGREES)
-        # headingRadians = math.radians(heading)
+            headingRadians = math.radians(self.gyro.heading(DEGREES))
 
-        # # Transform local movement to field coordinates
-        # deltaX = avgX * math.cos(headingRadians) - avgY * math.sin(headingRadians)
-        # deltaY = avgX * math.sin(headingRadians) + avgY * math.cos(headingRadians)
+            deltaX = avgDistance * math.cos(headingRadians)
+            deltaY = avgDistance * math.sin(headingRadians)
 
-        # # Update the robot's position
-        # self.x += deltaX
-        # self.y += deltaY
-        # self.heading = self.gyro.heading(DEGREES)
+            self.x += deltaX
+            self.y += deltaY
+            self.heading = self.gyro.heading(DEGREES)
 
-        # aprilTags = self.tagCamera.take_snapshot(AiVision.ALL_TAGS)
-        # for tag in aprilTags:
-        #     location = tagLocations[tag.id-1]
-        #     tagX, tagY, tagAngle = location
-        #     observedX = tag.centerX
-        #     observedY = tag.centerY
-        #     observedAngle = tag.angle
-            
-        #     adjustedX = tagX - (tagCameraOffset[0] * math.cos(math.radians(self.heading)) - tagCameraOffset[1] * math.sin(math.radians(self.heading)))
-        #     adjustedY = tagY - (tagCameraOffset[0] * math.sin(math.radians(self.heading)) + tagCameraOffset[1] * math.cos(math.radians(self.heading)))
-            
-        #     self.x = adjustedX - observedX
-        #     self.y = adjustedY - observedY
-        #     self.heading = (tagAngle - observedAngle) % 360
+            aprilTags = self.camera.take_snapshot(AiVision.ALL_TAGS)
+            for tag in aprilTags:
+                location = tagLocations[tag.id-1]
+                tagX, tagY, tagAngle = location
+                observedX = tag.centerX
+                observedY = tag.centerY
+                observedAngle = tag.angle
+                
+                adjustedX = tagX - (tagCameraOffset[0] * math.cos(math.radians(self.heading)) - tagCameraOffset[1] * math.sin(math.radians(self.heading)))
+                adjustedY = tagY - (tagCameraOffset[0] * math.sin(math.radians(self.heading)) + tagCameraOffset[1] * math.cos(math.radians(self.heading)))
+                
+                self.x = adjustedX - observedX
+                self.y = adjustedY - observedY
+                self.heading = (tagAngle - observedAngle) % 360
 
     def onLine(self, sensor):
         whiteLineValue = 680
