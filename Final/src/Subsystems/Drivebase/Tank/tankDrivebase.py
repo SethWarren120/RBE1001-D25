@@ -107,8 +107,8 @@ class TankDrivebase ():
                 adjustedX = tagX - (tagCameraOffset[0] * math.cos(math.radians(self.heading)) - tagCameraOffset[1] * math.sin(math.radians(self.heading)))
                 adjustedY = tagY - (tagCameraOffset[0] * math.sin(math.radians(self.heading)) + tagCameraOffset[1] * math.cos(math.radians(self.heading)))
                 
-                self.x = adjustedX - observedX
-                self.y = adjustedY - observedY
+                self.x += (self.x - (adjustedX - observedX))/2
+                self.y += (self.y - (adjustedY - observedY))/2
                 self.heading = (tagAngle - observedAngle) % 360
 
     def onLine(self, sensor):
