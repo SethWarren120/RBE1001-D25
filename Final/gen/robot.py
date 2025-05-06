@@ -180,15 +180,16 @@ wristGearRatio = 10/6
 armPID = [1.5,0,0]
 armFF = 0.1
 armTolerance = 0.5
-pivotPID = [1.8,0,0]
+pivotPID = [1,0,0]
 pivotFF = 0.09
 pivotTolerance = 0.2
+pivotMaxSpeed = 15
 wristPID = [1,0,0]
 wristTolerance = 0.5
-post1Height = [0, 25, 20]
-post2Height = [0, 45, 45]
-post3Height = [270, 46, 42]
-post4Height = [270, 50, 55]
+post1Height = [180, 25, 20]
+post2Height = [180, 50, 50]
+post3Height = [140, 42, 42]
+post4Height = [270, 52, 57]
 fruitAlignmentPID = [0.1, 0, 0]
 fruitAlignmentTolerance = 10
 Lines = [[0, 0, 36, 0], [36, 0, 36, 60], [36, 60, 0, 60], [0, 60, 0, 0], 
@@ -276,8 +277,7 @@ class TankDrivebase ():
             self.heading = self.gyro.heading(DEGREES)
             aprilTags = self.camera.take_snapshot(AiVision.ALL_TAGS)
             for tag in aprilTags:
-                location = tagLocations[tag.id-1]
-                tagX, tagY, tagAngle = location
+                tagX, tagY, tagAngle = tagLocations[tag.id-1]
                 observedX = tag.centerX
                 observedY = tag.centerY
                 observedAngle = tag.angle
@@ -345,7 +345,9 @@ class Arm ():
         armAngleThread = Thread(lambda: self.setAngle())
         wristAngleThread = Thread(lambda: self.setWristAngle())
     def getLength(self):
-        self.armLength = self.armmotorL.position(DEGREES) / armGearRatio
+        leftLength = self.armmotorL.position(DEGREES) / armGearRatio
+        rightLength = self.armmotorR.position(DEGREES) / armGearRatio
+        self.armLength = (leftLength+rightLength)/2
         return self.armLength
     def setLength(self):
         while True:
@@ -360,7 +362,9 @@ class Arm ():
             integral += error
             derivative = error - prevError
             output = kp * error + ki * integral + kd * derivative
-            if (self.armmotorL.torque() > 1.2 or self.armmotorL.torque() > 1.2):
+            if (self.armmotorL.torque() > 1.5 or self.armmotorL.torque() > 1.5 or (self.getLength() == 0 and targetLength == 0)):
+                self.armmotorR.stop()
+                self.armmotorL.stop()
                 self.armmotorR.set_position(0, DEGREES)
                 self.armmotorL.set_position(0, DEGREES)
             else:
@@ -369,7 +373,9 @@ class Arm ():
             prevError = error
             self.armLength = self.armmotorL.position(DEGREES) / armGearRatio
     def getAngle(self):
-        self.armAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
+        leftAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
+        rightAngle = self.pivotmotorR.position(DEGREES) / pivotGearRatio
+        self.armAngle = (leftAngle+rightAngle)/2
         return self.armAngle
     def setAngle(self):
         while True:
@@ -382,12 +388,15 @@ class Arm ():
             integral += error
             derivative = error - prevError
             output = (kp * error + pivotFF*math.cos(math.radians(self.getAngle()))) + ki * integral + kd * derivative
-            if (self.pivotmotorL.torque() > 1.1 or self.pivotmotorR.torque() > 1.1):
+            clampedOutput = self.clamp(output, -pivotMaxSpeed, pivotMaxSpeed)
+            if (self.pivotmotorL.torque() > 1.5 or self.pivotmotorR.torque() > 1.5 or (self.getAngle() == 0 and targetAngle == 0)):
+                self.pivotmotorR.stop()
+                self.pivotmotorL.stop()
                 self.pivotmotorR.set_position(0, DEGREES)
                 self.pivotmotorL.set_position(0, DEGREES)
             else:
-                self.pivotmotorL.spin(FORWARD, output, PERCENT)
-                self.pivotmotorR.spin(FORWARD, output, PERCENT)
+                self.pivotmotorL.spin(FORWARD, clampedOutput, PERCENT)
+                self.pivotmotorR.spin(FORWARD, clampedOutput, PERCENT)
             prevError = error
             self.armAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
     def getWristAngle(self):
@@ -395,26 +404,24 @@ class Arm ():
         return self.wristAngle
     def setWristAngle(self):
         while True:
-            targetAngle = self.dWrist % 360
+            targetAngle = self.dWrist
             if targetAngle > 180:
                 targetAngle -= 360
-            if (self.getLength() < 175 and (self.dWrist < 0 or self.dWrist > 180)):
+            if (abs(self.getLength()-self.dLength) > armTolerance*10 and self.dLength > 130):
                 targetAngle = self.getWristAngle()
             kp, ki, kd = wristPID
             integral = 0
             prevError = 0
             currentAngle = self.getWristAngle()
             error = targetAngle - currentAngle
-            if error > 180:
-                error -= 360
-            elif error < -180:
-                error += 360
             integral += error
             derivative = error - prevError
             output = kp * error + ki * integral + kd * derivative
             self.wristmotor.spin(FORWARD, output, PERCENT)
             prevError = error
             self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
+    def flipWrist(self):
+        self.setSetpoint(self.dLength, self.dAngle, self.dWrist+180)
     def clamp(self, value, min_value, max_value):
         return max(min_value, min(value, max_value))
     def setSetpoint(self, length, angle, wristAngle):
@@ -422,16 +429,26 @@ class Arm ():
         self.dLength = length
         self.dWrist = wristAngle
     def stowArm(self):
-        if (abs(self.getWristAngle()) < abs(self.getWristAngle()-180)):
-            self.setSetpoint(self.getLength(), self.getAngle(), 0)
-        else:
-            self.setSetpoint(self.getLength(), self.getAngle(), 180)
+        currentWristAngle = self.getWristAngle()
+        print(currentWristAngle)
+        if abs(currentWristAngle - 0) < abs(currentWristAngle - 180):
+            if abs(currentWristAngle - 0) < abs(currentWristAngle - 180) and abs(currentWristAngle - 0) < abs(currentWristAngle + 180):
+                self.setSetpoint(self.getLength(), self.getAngle(), 0)
+            elif abs(currentWristAngle - 180) < abs(currentWristAngle + 180):
+                self.setSetpoint(self.getLength(), self.getAngle(), 180)
+            else:
+                self.setSetpoint(self.getLength(), self.getAngle(), -180)
         while(abs(self.getWristAngle()-self.dWrist) > wristTolerance):
             sleep(1)
         self.setSetpoint(0, self.getAngle(), self.getWristAngle())
         while(abs(self.getLength()-self.dLength) > armTolerance):
             sleep(1)
         self.setSetpoint(0, 0, self.getWristAngle())
+    def atSetpoint(self):
+        if (abs(self.getLength()-self.dLength) < armTolerance and abs(self.getAngle()-self.dAngle) < pivotTolerance and abs(self.getWristAngle()-self.dWrist) < wristTolerance):
+            return True
+        else:
+            return False
 class Intake ():
     def __init__(self, intakemotor: Motor):
         self.intakemotor = intakemotor
@@ -540,6 +557,10 @@ def printDebugging():
 debugThread = Thread(printDebugging)
 while inertial.is_calibrating():
     sleep(1)
-arm.setSetpoint(180,50,-50)
-wait(3000)
+arm.setSetpoint(post3Height[0],post3Height[1]+15,-90)
+sleep(4000)
+arm.setSetpoint(post3Height[0],post3Height[1]+15,post3Height[2]+180)
+sleep(1000)
+intake.runIntakeForTime(FORWARD,2000)
+sleep(3000)
 arm.stowArm()

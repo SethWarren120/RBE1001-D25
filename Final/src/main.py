@@ -60,9 +60,13 @@ while inertial.is_calibrating():
 
 # angleArmToObject()
 # grabObject()
-arm.setSetpoint(180,50,-50)
-# while (abs(arm.getAngle()-50) > armTolerance):
-#     sleep(1)
-# arm.setSetpoint(200,50,50)
-wait(3000)
+arm.setSetpoint(post3Height[0],post3Height[1]+15,-90)
+# arm.setSetpoint(0,0,post4Height[2]+180)
+
+sleep(4000)
+arm.setSetpoint(post3Height[0],post3Height[1]+15,post3Height[2]+180)
+sleep(1000)
+intake.runIntakeForTime(FORWARD,2000)
+
+sleep(3000)
 arm.stowArm()

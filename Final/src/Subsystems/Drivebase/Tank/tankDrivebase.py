@@ -98,8 +98,7 @@ class TankDrivebase ():
 
             aprilTags = self.camera.take_snapshot(AiVision.ALL_TAGS)
             for tag in aprilTags:
-                location = tagLocations[tag.id-1]
-                tagX, tagY, tagAngle = location
+                tagX, tagY, tagAngle = tagLocations[tag.id-1]
                 observedX = tag.centerX
                 observedY = tag.centerY
                 observedAngle = tag.angle

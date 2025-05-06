@@ -89,16 +89,17 @@ wristGearRatio = 10/6
 armPID = [1.5,0,0]
 armFF = 0.1
 armTolerance = 0.5
-pivotPID = [1.8,0,0]
+pivotPID = [1,0,0]
 pivotFF = 0.09
 pivotTolerance = 0.2
+pivotMaxSpeed = 15
 wristPID = [1,0,0]
 wristTolerance = 0.5
 
-post1Height = [0, 25, 20]
-post2Height = [0, 45, 45]
-post3Height = [270, 46, 42]
-post4Height = [270, 50, 55]
+post1Height = [180, 25, 20]
+post2Height = [180, 50, 50]
+post3Height = [140, 42, 42]
+post4Height = [270, 52, 57]
 
 fruitAlignmentPID = [0.1, 0, 0]
 fruitAlignmentTolerance = 10
