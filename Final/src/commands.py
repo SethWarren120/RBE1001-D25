@@ -11,6 +11,72 @@ def setSubsystems(driveBase: TankDrivebase, arm: Arm, intake: Intake):
     armSub = arm
     intakeSub = intake
 
-def stowArm():
-    intakeSub.stopIntake()
-    armSub.setSetpoint(minArmLength, minArmAngle, 0)
+tracking_enabled = False
+
+def startObjectTracking():
+    global tracking_enabled
+    tracking_enabled = True
+    tracking_thread = Thread(continuousArmTracking)
+
+def stopObjectTracking():
+    global tracking_enabled
+    tracking_enabled = False
+
+def continuousArmTracking():
+    global tracking_enabled
+    
+    while tracking_enabled:
+        findAndAimAtObject()
+        wait(50)
+
+def findAndAimAtObject():
+    object = None
+    
+    objectsGreen = driveSub.camera.take_snapshot(vision_Green)
+    objectsOrange = driveSub.camera.take_snapshot(vision_Orange)
+    objectsYellow = driveSub.camera.take_snapshot(vision_Yellow)
+
+    largestwidth = 0
+    for tobject in objectsGreen:
+        if tobject.width > largestwidth:
+            largestwidth = tobject.width
+            object = tobject
+    
+    for tobject in objectsOrange:
+        if tobject.width > largestwidth:
+            largestwidth = tobject.width
+            object = tobject
+    
+    for tobject in objectsYellow:
+        if tobject.width > largestwidth:
+            largestwidth = tobject.width
+            object = tobject
+
+    if object is None:
+        return
+    
+    y = object.centerY
+    correctedY = cameraYOffset - y
+    
+    angleAdjustment = correctedY * (pivotPID[0] / (cameraHeight / 2))
+    currentAngle = armSub.getAngle()
+    targetAngle = currentAngle + angleAdjustment
+    
+    armSub.setSetpoint(
+        armSub.getLength(),
+        targetAngle,
+        armSub.getWristAngle()
+    )
+
+def angleArmToObject():
+    startObjectTracking()
+
+def grabObject():
+    # angleArmToObject()
+    armSub.setSetpoint(0, 50, 0)
+    wait(1000)
+    armSub.setSetpoint(50, 50, 0)
+    wait(1000)
+    armSub.setSetpoint(50, 50, armSub.getAngle())
+    intakeSub.runIntakeForTime(FORWARD, 1000)
+    armSub.stowArm()

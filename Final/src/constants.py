@@ -18,9 +18,9 @@ drivePID = [0.01,0,0]
 tagCameraOffset = [0, 0, 0, 0, 0, 0] #inches
 objCameraOffset = [0, 0, 0, 0, 0, 0] #inches
 
-vision_Yellow = Colordesc(2, 119, 69, 36, 8, 0.25)
-vision_Green = Colordesc(3, 18, 110, 45, 14, 0.44)
-vision_Orange = Colordesc(1, 226, 149, 134, 10, 0.2)
+vision_Yellow = Colordesc(2, 140, 106, 60, 7, 0.37)
+vision_Green = Colordesc(3, 14, 143, 61, 15, 0.41)
+vision_Orange = Colordesc(1, 232, 152, 138, 10, 0.12)
 vision_Pink = Colordesc(3, 232, 78, 146, 11, 0.13)
 
 vision_GreenBox = Codedesc(1, vision_Pink, vision_Green)
@@ -31,6 +31,8 @@ cameraWidth = 320
 cameraHeight = 240
 cameraXOffset = cameraWidth/2
 cameraYOffset = cameraHeight/2
+cameraFOV = 61 #degrees
+cameraVerticalFOV = 41 #degrees
 
 visionFruitSizeThreshold = 30
 visionContinuityTolerance = 5
@@ -74,33 +76,6 @@ tagLocations = [tag1,
                 tag15,
                 tag16]
 
-#x y (inches)
-post1Location = [50,50]
-post2Location = [50,50]
-post3Location = [50,50]
-post4Location = [50,50]
-post5Location = [50,50]
-post6Location = [50,50]
-post7Location = [50,50]
-post8Location = [50,50]
-post9Location = [50,50]
-posts = [post1Location, post2Location, post3Location,
-         post4Location, post5Location, post6Location,
-         post7Location, post8Location, post9Location]
-
-#roller constants
-rollerDiameter = 2.5 #inches
-rollerGearRatio = 5
-forksGearRatio = 5
-
-#arm constants
-lowFruitHeight = 5 #inches
-lowFruitAngle = 45 #degrees
-highFruitHeight = 10 #inches
-highFruitAngle = 90 #degrees
-lowFruitWristAngle = 5 #degrees
-highFruitWristAngle = 10 #degrees
-
 minArmLength = 0
 maxArmLength = 270
 
@@ -112,19 +87,19 @@ pivotGearRatio = 72/12
 wristGearRatio = 10/6
 
 armPID = [1.5,0,0]
-armFF = 0.5
+armFF = 0.1
 armTolerance = 0.5
-pivotPID = [1.8,0,0]
-pivotFF = 0.5
-pivotTolerance = 0.1
+pivotPID = [1,0,0]
+pivotFF = 0.09
+pivotTolerance = 0.2
+pivotMaxSpeed = 15
 wristPID = [1,0,0]
-wristTolerance = 1
+wristTolerance = 0.5
 
-
-post1Height = [0, 25, 20]
-post2Height = [0, 45, 45]
-post3Height = [270, 46, 42]
-post4Height = [270, 50, 55]
+post1Height = [180, 25, 20]
+post2Height = [180, 50, 50]
+post3Height = [140, 42, 42]
+post4Height = [270, 52, 57]
 
 fruitAlignmentPID = [0.1, 0, 0]
 fruitAlignmentTolerance = 10
