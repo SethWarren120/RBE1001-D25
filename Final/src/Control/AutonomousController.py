@@ -1,17 +1,17 @@
-def Ramp():
+# def Ramp():
 
-    while inertial.orientation(ROLL) > -23:
-        drivebase.drive(100, 0)
+#     while inertial.orientation(ROLL) > -23:
+#         drivebase.drive(100, 0)
     
-    counter = 1000
+#     counter = 1000
 
-    while counter > 0:
-        drivebase.drive(40, -(sideUltrasonic.distance(INCHES) - ultrasonicWallClearance) * ultrasonicWallFollowPID[0])
-        if inertial.orientation(ROLL) > -5:
-            counter -= 1
-    pass
+#     while counter > 0:
+#         drivebase.drive(40, -(sideUltrasonic.distance(INCHES) - ultrasonicWallClearance) * ultrasonicWallFollowPID[0])
+#         if inertial.orientation(ROLL) > -5:
+#             counter -= 1
+#     pass
 
-    drivebase.drive(0, 0)
+#     drivebase.drive(0, 0)
 
 # from constants import *
 # from Control.Orchard import *

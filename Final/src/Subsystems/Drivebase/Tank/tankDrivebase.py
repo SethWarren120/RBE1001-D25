@@ -2,6 +2,7 @@
 from vex import *
 from Subsystems.Drivebase.drivebaseMotorCorrector import *
 from constants import *
+from Control.Localization import *
 
 class TankDrivebase ():
 
@@ -48,11 +49,23 @@ class TankDrivebase ():
 
         self.motorLeft.spin(FORWARD,left_speed)
         self.motorRight.spin(FORWARD,right_speed)
+
+    def headingError(self, setpoint, current):
+        err = setpoint - current
+        while err < -180:
+            err += 360
+        while err > 180:
+            err -= 360
+        return err
         
-    def turn(self, heading):
-        # self.motorLeft.spin(FORWARD, -speed)
-        # self.motorRight.spin(FORWARD, speed)
-        pass
+    def turn(self, heading):        
+        print(360 - inertial.orientation(YAW))
+        print(heading)
+        while abs(self.headingError(heading, 360-inertial.orientation(YAW))) > headingSetpointTolerance:
+            print(self.headingError(heading, 360-inertial.orientation(YAW)))
+            self.drive(0, headingSetpointPID[0] * 360-self.headingError(heading, inertial.orientation(YAW)))
+        print("Done")
+        self.drive(0, 0)
 
     def moveLen(self, len, speed):
         deg = 360 * ((len / self.circumference) * self.gearing)
@@ -79,36 +92,19 @@ class TankDrivebase ():
         else:
             self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
-    
+
     def updateOdometry(self):
+        wheelL = self.motorLeft.position(DEGREES)
+        wheelR = self.motorRight.position(DEGREES)
         while True:
-            leftDistance = self.motorLeft.position(DEGREES) / 360.0 * self.circumference
-            rightDistance = self.motorRight.position(DEGREES) / 360.0 * self.circumference
+            dl = math.pi * (self.motorLeft.position(DEGREES) - wheelL) / 90
+            dr = math.pi * (self.motorRight.position(DEGREES) - wheelR) / 90
+            wheelL = self.motorLeft.position(DEGREES)
+            wheelR = self.motorRight.position(DEGREES)
+            odometryEstimate(dl, dr)
+            sleep(20)
 
-            avgDistance = (leftDistance + rightDistance) / 2.0
 
-            headingRadians = math.radians(self.gyro.heading(DEGREES))
-
-            deltaX = avgDistance * math.cos(headingRadians)
-            deltaY = avgDistance * math.sin(headingRadians)
-
-            self.x += deltaX
-            self.y += deltaY
-            self.heading = self.gyro.heading(DEGREES)
-
-            aprilTags = self.camera.take_snapshot(AiVision.ALL_TAGS)
-            for tag in aprilTags:
-                tagX, tagY, tagAngle = tagLocations[tag.id-1]
-                observedX = tag.centerX
-                observedY = tag.centerY
-                observedAngle = tag.angle
-                
-                adjustedX = tagX - (tagCameraOffset[0] * math.cos(math.radians(self.heading)) - tagCameraOffset[1] * math.sin(math.radians(self.heading)))
-                adjustedY = tagY - (tagCameraOffset[0] * math.sin(math.radians(self.heading)) + tagCameraOffset[1] * math.cos(math.radians(self.heading)))
-                
-                self.x += (self.x - (adjustedX - observedX))/2
-                self.y += (self.y - (adjustedY - observedY))/2
-                self.heading = (tagAngle - observedAngle) % 360
 
     def onLine(self, sensor):
         whiteLineValue = 680
