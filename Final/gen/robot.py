@@ -1,6 +1,114 @@
 # Automatically generated deployment script
 # Edits to this file will be overwritten
 from vex import *
+import math
+wheelDiameter = 4.0
+wheel_travel = math.pi*wheelDiameter
+track_width = 15
+wheel_base = 9.5
+gear_ratio = 1
+wheelCircumference = 3.14 * wheelDiameter 
+degreesPerInch = 360.0 / wheelCircumference
+drivePID = [0.01,0,0]
+tagCameraOffset = [0, 0, 0, 0, 0, 0] #inches
+objCameraOffset = [0, 0, 0, 0, 0, 0] #inches
+vision_Green = Colordesc(1, 14, 143, 61, 15, 0.41)
+vision_Yellow = Colordesc(2, 140, 106, 60, 7, 0.37)
+vision_Orange = Colordesc(3, 232, 152, 138, 10, 0.12)
+vision_Pink = Colordesc(4, 232, 78, 146, 11, 0.13)
+vision_GreenBox = Codedesc(1, vision_Pink, vision_Green)
+vision_YellowBox = Codedesc(2, vision_Pink, vision_Yellow)
+vision_OrangeBox = Codedesc(3, vision_Pink, vision_Orange)
+cameraWidth = 320
+cameraHeight = 240
+cameraXOffset = cameraWidth/2
+cameraYOffset = cameraHeight/2
+cameraFOV = 61 #degrees
+cameraVerticalFOV = 41 #degrees
+visionFruitSizeThreshold = 30
+visionContinuityTolerance = 30
+fruitHeight1 = 5 #inches
+fruitHeight2 = 10 #inches
+tagLocations = [[13, -0.75, 90],
+                [86, -0.75, 90],
+                [98.75, 13, 180],
+                [98.75, 50, 180],
+                [98.75, 90, 180],
+                [98.75, 133, 180],
+                [86, 146.75, 270],
+                [13, 146.75, 270],
+                [-0.75, 133, 0],
+                [-0.75, 90, 0],
+                [-0.75, 50, 0],
+                [-0.75, 13, 0]]
+post1Location = [50,50]
+post2Location = [50,50]
+post3Location = [50,50]
+post4Location = [50,50]
+post5Location = [50,50]
+post6Location = [50,50]
+post7Location = [50,50]
+post8Location = [50,50]
+post9Location = [50,50]
+posts = [post1Location, post2Location, post3Location,
+         post4Location, post5Location, post6Location,
+         post7Location, post8Location, post9Location]
+rollerDiameter = 2.5 #inches
+rollerGearRatio = 5
+forksGearRatio = 5
+lowFruitHeight = 5 #inches
+lowFruitAngle = 45 #degrees
+highFruitHeight = 10 #inches
+highFruitAngle = 90 #degrees
+lowFruitWristAngle = 5 #degrees
+highFruitWristAngle = 10 #degrees
+minArmLength = 0
+maxArmLength = 270
+minArmAngle = 1
+maxArmAngle = 90
+armGearRatio = 12/6
+pivotGearRatio = 72/12
+wristGearRatio = 10/6
+armPID = [1.5,0,0]
+armFF = 0.1
+armTolerance = 0.5
+pivotPID = [1,0,0]
+pivotFF = 0.09
+pivotTolerance = 0.2
+pivotMaxSpeed = 15
+wristPID = [1,0,0]
+wristTolerance = 0.5
+post1Height = [180, 25, 20]
+post2Height = [180, 50, 50]
+post3Height = [140, 42, 42]
+post4Height = [270, 52, 57]
+fruitAlignmentPID = [0.1, 0, 0]
+fruitAlignmentTolerance = 10
+Lines = [[13, 13, 86, 13], [86, 13, 86, 133], [86, 133, 13, 133], [13, 133, 13, 13], 
+         [86, 50, 24, 50], [86, 90, 24, 90], [13, 90, 12, 90], [13, 50, 12, 50]]
+LineConnections = [[-1, [86, 13], -1, [13, 13], -1, -1, -1, -1],
+                   [[86, 13], -1, [86, 133], -1, [86, 50], [86, 90], -1, -1],
+                   [-1, [86, 133], -1, [13, 133], -1, -1, -1, -1],
+                   [[13, 13], -1, [13, 133], -1, -1, -1, [13, 90], [13, 50]],
+                   [-1, [86, 50], -1, -1, -1, -1, -1, -1],
+                   [-1, [86, 90], -1, -1, -1, -1, -1, -1],
+                   [-1, -1, -1, [13, 90], -1, -1, -1, -1],
+                   [-1, -1, -1, [13, 50], -1, -1, -1, -1]]
+LineNav = [[[0], [0,1], [0,1, 2], [0,3], [0,1, 4], [0,1, 5], [0,3, 6], [0,3, 7]],
+           [[1,0], [1], [1,2], [1,0, 3], [1,4], [1,5], [1,2, 3, 6], [1,0, 3, 7]],
+           [[2,3, 0], [2,1], [2], [2,3], [2,1, 4], [2,1, 5], [2,3, 6], [2,3, 7]],
+           [[3,0], [3,0, 1], [3,2], [3], [3,0, 1, 4], [3,2, 1, 5], [3,6], [3,7]],
+           [[4,1, 0], [4,1], [4,1, 2], [4,1, 0, 3], [4], [4,1, 5], [4,1, 0, 3, 6], [4,1, 0, 3, 7]],
+           [[5,1, 0], [5,1], [5,1, 2], [5,1, 2, 3], [5,1, 4], [5], [5,1, 2, 3, 6], [5,1, 2, 3, 7]],
+           [[6,3, 0], [6,3, 2, 1], [6,3, 2], [6,3], [6,3, 2, 1, 4], [6,3, 2, 1, 5], [6], [6,3, 7]],
+           [[7,3, 0], [7,3, 0, 1], [7,3, 2], [7,3], [7,3, 0, 1, 4], [7,3, 0, 1, 5], [7,3, 6], [7]]]
+ultrasonicWallClearance = 3.5
+ultrasonicWallFollowPID = [5, 0, 0]
+headingSetpointTolerance = 3
+headingSetpointPID = [0.6, 0, 0]
+fieldSetpointTolerance = 2
+fieldDriveHeadingPID = [1, 0, 0]
+fieldDriveSpeed = 30
 class DrivebaseMotorCorrector:
     print("hello :3")
     motors = []
@@ -110,106 +218,45 @@ class DrivebaseMotorCorrectionProfile:
         print(config.startingOffsets)
         config.configured = False
         return config
-import math
-wheelDiameter = 4.0
-wheel_travel = math.pi*wheelDiameter
-track_width = 15
-wheel_base = 9.5
-gear_ratio = 1
-wheelCircumference = 3.14 * wheelDiameter 
-degreesPerInch = 360.0 / wheelCircumference
-drivePID = [0.01,0,0]
-tagCameraOffset = [0, 0, 0, 0, 0, 0] #inches
-objCameraOffset = [0, 0, 0, 0, 0, 0] #inches
-vision_Yellow = Colordesc(2, 140, 106, 60, 7, 0.37)
-vision_Green = Colordesc(3, 14, 143, 61, 15, 0.41)
-vision_Orange = Colordesc(1, 232, 152, 138, 10, 0.12)
-vision_Pink = Colordesc(3, 232, 78, 146, 11, 0.13)
-vision_GreenBox = Codedesc(1, vision_Pink, vision_Green)
-vision_YellowBox = Codedesc(2, vision_Pink, vision_Yellow)
-vision_OrangeBox = Codedesc(3, vision_Pink, vision_Orange)
-cameraWidth = 320
-cameraHeight = 240
-cameraXOffset = cameraWidth/2
-cameraYOffset = cameraHeight/2
-cameraFOV = 61 #degrees
-cameraVerticalFOV = 41 #degrees
-visionFruitSizeThreshold = 30
-visionContinuityTolerance = 5
-fruitHeight1 = 5 #inches
-fruitHeight2 = 10 #inches
-tag1 = [0,0,0]
-tag2 = [0,0,0]
-tag3 = [0,0,0]
-tag4 = [0,0,0]
-tag5 = [0,0,0]
-tag6 = [0,0,0]
-tag7 = [0,0,0]
-tag8 = [0,0,0]
-tag9 = [0,0,0]
-tag10 = [0,0,0]
-tag11 = [0,0,0]
-tag12 = [0,0,0]
-tag13 = [0,0,0]
-tag14 = [0,0,0]
-tag15 = [0,0,0]
-tag16 = [0,0,0]
-tagLocations = [tag1,
-                tag2,
-                tag3,
-                tag4,
-                tag5,
-                tag6,
-                tag7,
-                tag8,
-                tag9,
-                tag10,
-                tag11,
-                tag12,
-                tag13,
-                tag14,
-                tag15,
-                tag16]
-minArmLength = 0
-maxArmLength = 270
-minArmAngle = 1
-maxArmAngle = 90
-armGearRatio = 12/6
-pivotGearRatio = 72/12
-wristGearRatio = 10/6
-armPID = [1.5,0,0]
-armFF = 0.1
-armTolerance = 0.5
-pivotPID = [1,0,0]
-pivotFF = 0.09
-pivotTolerance = 0.2
-pivotMaxSpeed = 15
-wristPID = [1,0,0]
-wristTolerance = 0.5
-post1Height = [180, 25, 20]
-post2Height = [180, 50, 50]
-post3Height = [140, 42, 42]
-post4Height = [270, 52, 57]
-fruitAlignmentPID = [0.1, 0, 0]
-fruitAlignmentTolerance = 10
-Lines = [[0, 0, 36, 0], [36, 0, 36, 60], [36, 60, 0, 60], [0, 60, 0, 0], 
-         [36, 20, 24, 20], [36, 40, 24, 40], [0, 40, 12, 40], [0, 20, 12, 20]]
-LineConnections = [[-1, [36, 0], -1, [0, 0], -1, -1, -1, -1],
-                   [[36, 0], -1, [36, 60], -1, [36, 20], [36, 40], -1, -1],
-                   [-1, [36, 60], -1, [0, 60], -1, -1, -1, -1],
-                   [[0, 0], -1, [0, 60], -1, -1, -1, [0, 40], [0, 20]],
-                   [-1, [36, 20], -1, -1, -1, -1, -1, -1],
-                   [-1, [36, 40], -1, -1, -1, -1, -1, -1],
-                   [-1, -1, -1, [0, 40], -1, -1, -1, -1],
-                   [-1, -1, -1, [0, 20], -1, -1, -1, -1]]
-LineNav = [[[0], [1], [1, 2], [3], [1, 4], [1, 5], [3, 6], [3, 7]],
-           [[0], [1], [2], [0, 3], [4], [5], [2, 3, 6], [0, 3, 7]],
-           [[3, 0], [1], [2], [3], [1, 4], [1, 5], [3, 6], [3, 7]],
-           [[0], [0, 1], [2], [3], [0, 1, 4], [2, 1, 5], [6], [7]],
-           [[1, 0], [1], [1, 2], [1, 0, 3], [4], [1, 5], [1, 0, 3, 6], [1, 0, 3, 7]],
-           [[1, 0], [1], [1, 2], [1, 2, 3], [1, 4], [5], [1, 2, 3, 6], [1, 2, 3, 7]],
-           [[3, 0], [3, 2, 1], [3, 2], [3], [3, 2, 1, 4], [3, 2, 1, 5], [6], [3, 7]],
-           [[3, 0], [3, 0, 1], [3, 2], [3], [3, 0, 1, 4], [3, 0, 1, 5], [3, 6], [7]]]
+fieldX = 74
+fieldY = 13
+wheelEstimates = [[0.0, 0.0],
+                  [0.0, 0.0],
+                  [0.0, 0.0],
+                  [0.0, 0.0],
+                  [0.0, 0.0]]
+inertial = Inertial(Ports.PORT1)
+def odometryEstimate(wheelL, wheelR):
+    global fieldX, fieldY
+    if wheelL == 0:
+        wheelL = 0.0001
+    if wheelR == 0:
+        wheelR = 0.0001
+    if wheelL < wheelR:
+        ri = 15.0 * wheelL / (wheelR - wheelL)
+        theta = 2.0 * math.pi * wheelL / ri
+        d = (ri + 7.5) * theta / (2 * math.pi)
+    elif wheelR < wheelL:
+        ri = 15.0 * wheelR / (wheelL - wheelR)
+        theta = -(2.0 * math.pi * wheelR / ri)
+        d = (ri + 7.5) * -theta / (2 * math.pi)
+    else:
+        d = wheelL
+        theta = 0
+    heading = ((360 - inertial.orientation(YAW)) * math.pi / 180.0)
+    x = d * math.cos(heading)
+    y = d * math.sin(heading)
+    wheelEstimates.remove(wheelEstimates[0])
+    wheelEstimates.append([x, y])
+    fieldX += x
+    fieldY += y
+def visionEstimate(x, y):
+    global fieldX, fieldY
+    fieldX = x
+    fieldY = y
+    for odomEstimate in wheelEstimates:
+        fieldX += odomEstimate[0]
+        fieldY += odomEstimate[1]
 class TankDrivebase ():
     diameter = 4
     gearing = 5 / 1
@@ -243,8 +290,21 @@ class TankDrivebase ():
         right_speed = speed + direction
         self.motorLeft.spin(FORWARD,left_speed)
         self.motorRight.spin(FORWARD,right_speed)
-    def turn(self, heading):
-        pass
+    def headingError(self, setpoint, current):
+        err = setpoint - current
+        while err < -180:
+            err += 360
+        while err > 180:
+            err -= 360
+        return err
+    def turn(self, heading):        
+        print(360 - inertial.orientation(YAW))
+        print(heading)
+        while abs(self.headingError(heading, 360-inertial.orientation(YAW))) > headingSetpointTolerance:
+            print(self.headingError(heading, 360-inertial.orientation(YAW)))
+            self.drive(0, headingSetpointPID[0] * 360-self.headingError(heading, inertial.orientation(YAW)))
+        print("Done")
+        self.drive(0, 0)
     def moveLen(self, len, speed):
         deg = 360 * ((len / self.circumference) * self.gearing)
         self.motorCorrector.setPassiveMode(False)
@@ -265,27 +325,15 @@ class TankDrivebase ():
             self.motorLeft.spin_for(FORWARD, degLeft, DEGREES, speed * (degLeft / degRight), self.speedUnits, False)
             self.motorRight.spin_for(FORWARD, degRight, DEGREES, speed, self.speedUnits, True)
     def updateOdometry(self):
+        wheelL = self.motorLeft.position(DEGREES)
+        wheelR = self.motorRight.position(DEGREES)
         while True:
-            leftDistance = self.motorLeft.position(DEGREES) / 360.0 * self.circumference
-            rightDistance = self.motorRight.position(DEGREES) / 360.0 * self.circumference
-            avgDistance = (leftDistance + rightDistance) / 2.0
-            headingRadians = math.radians(self.gyro.heading(DEGREES))
-            deltaX = avgDistance * math.cos(headingRadians)
-            deltaY = avgDistance * math.sin(headingRadians)
-            self.x += deltaX
-            self.y += deltaY
-            self.heading = self.gyro.heading(DEGREES)
-            aprilTags = self.camera.take_snapshot(AiVision.ALL_TAGS)
-            for tag in aprilTags:
-                tagX, tagY, tagAngle = tagLocations[tag.id-1]
-                observedX = tag.centerX
-                observedY = tag.centerY
-                observedAngle = tag.angle
-                adjustedX = tagX - (tagCameraOffset[0] * math.cos(math.radians(self.heading)) - tagCameraOffset[1] * math.sin(math.radians(self.heading)))
-                adjustedY = tagY - (tagCameraOffset[0] * math.sin(math.radians(self.heading)) + tagCameraOffset[1] * math.cos(math.radians(self.heading)))
-                self.x += (self.x - (adjustedX - observedX))/2
-                self.y += (self.y - (adjustedY - observedY))/2
-                self.heading = (tagAngle - observedAngle) % 360
+            dl = math.pi * (self.motorLeft.position(DEGREES) - wheelL) / 90
+            dr = math.pi * (self.motorRight.position(DEGREES) - wheelR) / 90
+            wheelL = self.motorLeft.position(DEGREES)
+            wheelR = self.motorRight.position(DEGREES)
+            odometryEstimate(dl, dr)
+            sleep(20)
     def onLine(self, sensor):
         whiteLineValue = 680
         return sensor.reflectivity() < whiteLineValue
@@ -469,6 +517,42 @@ class Intake ():
         self.stopIntake()
     def runIntakeForTime(self, direction, time):
         intakeTimeThread = Thread(lambda: self.runTimeThread(direction, time))
+treeLocations = [
+    1, 2,
+    1, 2,
+    1, 2,
+    1, 2,
+    1, 2,
+    1, 2,
+    1, 2,
+    1, 2,
+    1, 2
+]
+treeHeightIntervals = [0, 3, 6, 9, 12, 15, 18, 21]
+treeHeights = [-1, -1, -1, -1, -1, -1, -1, -1, -1]
+treeHeightSums = [-1, -1, -1, -1, -1, -1, -1, -1, -1]
+treeHeightCounts = [-1, -1, -1, -1, -1, -1, -1, -1, -1]
+treeRotations = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+treeRotationCertainty = [-1, -1, -1, -1, -1, -1, -1, -1, -1]
+fruitStatus = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+def GetTreePosition(treeNum):
+    return { treeLocations[2*treeNum], treeLocations[2*treeNum + 1] }
+def DetermineNextFruit(currentTree):
+    pass
+def GiveTreeHeightEstimate(tree, height, certainty):
+    treeHeightSums[tree] += height
+    treeHeightCounts[tree] += certainty
+    bestHeight = 0
+    i = 1
+    while i < 8:
+        if abs((treeHeightSums[tree] / treeHeightCounts[tree]) - treeHeightIntervals[i]) < abs((treeHeightSums[tree] / treeHeightCounts[tree]) - treeHeightIntervals[bestHeight]):
+            bestHeight = i
+    treeHeights[tree] = bestHeight
+def GiveTreeRotationEstimate(tree, rotation, certainty):
+    if certainty >= treeRotationCertainty[tree]:
+        treeRotations[tree] = rotation
+        treeRotationCertainty[tree] = certainty
 def setSubsystems(driveBase: TankDrivebase, arm: Arm, intake: Intake):
     global driveSub, armSub, intakeSub, forksSub
     driveSub = driveBase
@@ -527,20 +611,44 @@ def grabObject():
     armSub.setSetpoint(50, 50, armSub.getAngle())
     intakeSub.runIntakeForTime(FORWARD, 1000)
     armSub.stowArm()
+cam = AiVision(Ports.PORT2, AiVision.ALL_TAGS)
+cam.take_snapshot(AiVision.ALL_TAGS, 8)
+def AprilTagLoop():
+    while True:
+        tags = cam.take_snapshot(AiVision.ALL_TAGS)
+        print(len(tags))
+        for tag in tags:
+            print(tag.id)
+            ProcessAprilTag(tag)
+        sleep(20)
+def ProcessAprilTag(aprilTag):
+    if aprilTag.id < 12:
+        distance = 290 / aprilTag.height
+        angle = 27.5 - (27.5 * (aprilTag.centerY)/120)
+        height = math.sin(angle * 2 * math.pi / 360) * distance
+        GiveTreeHeightEstimate(aprilTag.id, height, aprilTag.height)
+        cr = 0 #Current rotation, get from gyro
+        GiveTreeRotationEstimate(aprilTag.id, cr + aprilTag.rotation, aprilTag.height)
+    else:
+        distance = 730 / aprilTag.height
+        fieldAngle = math.pi * (360 - (aprilTag.angle - tagLocations[aprilTag.id - 12][2])) / 180
+        fieldx = tagLocations[aprilTag.id - 12][0] + distance * math.cos(fieldAngle)
+        fieldy = tagLocations[aprilTag.id - 12][1] + distance * math.sin(fieldAngle)
+        print([fieldx, fieldy])
+        visionEstimate(fieldx, fieldy)
 brain=Brain()
+sleep(2000)
 motorLeft = Motor(Ports.PORT20, 18_1, False)
 motorRight = Motor(Ports.PORT10, 18_1, True)
 sideUltrasonic = Sonar(brain.three_wire_port.e)
+inertial = Inertial(Ports.PORT1)
 arm_motorL = Motor(Ports.PORT17, 18_1, False)
 arm_motorR = Motor(Ports.PORT7, 18_1, True)
-intake_motor = Motor(Ports.PORT6, 18_1, False)
-wrist_motor = Motor(Ports.PORT16, 18_1, False)
-pivot_motorL = Motor(Ports.PORT18, 18_1, True)
+intake_motor = Motor(Ports.PORT5, 18_1, False)
+wrist_motor = Motor(Ports.PORT6, 18_1, False)
+pivot_motorL = Motor(Ports.PORT4, 18_1, True)
 pivot_motorR = Motor(Ports.PORT9, 18_1, False)
-inertial = Inertial(Ports.PORT1)
-inertial.set_heading(180, DEGREES)
-inertial.calibrate()
-camera = AiVision(Ports.PORT2, vision_Yellow, vision_Green, vision_Orange, vision_Pink, vision_GreenBox, vision_YellowBox, vision_OrangeBox, AiVision.ALL_TAGS)
+camera = AiVision(Ports.PORT2, vision_Green, vision_Yellow, vision_Orange, vision_Pink, vision_GreenBox, vision_YellowBox, vision_OrangeBox, AiVision.ALL_TAGS)
 camera.start_awb()
 controller = Controller()
 drivebase = TankDrivebase(motorLeft, motorRight, inertial, camera, sideUltrasonic)
@@ -555,12 +663,182 @@ def printDebugging():
         brain.screen.print_at(arm.pivotmotorR.torque(), x=1, y=120)
         sleep(20)
 debugThread = Thread(printDebugging)
-while inertial.is_calibrating():
-    sleep(1)
-arm.setSetpoint(post3Height[0],post3Height[1]+15,-90)
-sleep(4000)
-arm.setSetpoint(post3Height[0],post3Height[1]+15,post3Height[2]+180)
-sleep(1000)
-intake.runIntakeForTime(FORWARD,2000)
-sleep(3000)
-arm.stowArm()
+def Ramp():
+    while inertial.orientation(ROLL) > -23:
+        drivebase.drive(100, 0)
+    counter = 1000
+    while counter > 0:
+        drivebase.drive(40, -(sideUltrasonic.distance(INCHES) - ultrasonicWallClearance) * ultrasonicWallFollowPID[0])
+        if inertial.orientation(ROLL) > -5:
+            counter -= 1
+    pass
+    drivebase.drive(0, 0)
+treeNumber = 2
+fruitNumber = -1
+def TreeDetection():
+    pass
+fruitColor = 0
+tracking = False
+def FruitDetection():
+    arm.setSetpoint(0, 30, 0)
+    drivebase.drive(0, 0)
+    print("Fc")
+    print(fruitColor)
+    timeout = 75
+    continuityCounter = 0
+    while timeout > 0:
+        if fruitColor == 0:
+            objects = camera.take_snapshot(vision_Green)
+        elif fruitColor == 1:
+            objects = camera.take_snapshot(vision_Orange)
+        else:
+            objects = camera.take_snapshot(vision_Yellow)
+        print(len(objects))
+        print("fc")
+        print(fruitColor)
+        if len(objects) == 0:
+            continue
+        if 'bestObject' in locals() and tracking:
+            compObject = LargestVisionObject(objects)
+            print("Yes")
+            if (abs(compObject.centerX - bestObject.centerX) <= visionContinuityTolerance and 
+                    abs(compObject.centerY - bestObject.centerY) <= visionContinuityTolerance and 
+                    abs(compObject.width - bestObject.width) <= visionContinuityTolerance and
+                    abs(compObject.height - bestObject.height) <= visionContinuityTolerance):
+                bestObject = compObject
+                continuityCounter += 1
+                if continuityCounter == 5:
+                    timeout = -1
+                    break
+            else:
+                continuityCounter = 0
+                tracking = False
+        else:
+            bestObject = LargestVisionObject(objects)
+            tracking = True
+    print("Stable Object")
+    timeout = 2000
+    while (timeout > 0):
+        if fruitColor == 0:
+            compObject = LargestVisionObject(camera.take_snapshot(vision_Green))
+        elif fruitColor == 1:
+            compObject = LargestVisionObject(camera.take_snapshot(vision_Orange))
+        else:
+            compObject = LargestVisionObject(camera.take_snapshot(vision_Yellow))
+        drivebase.drive(0, (compObject.centerX - (cameraWidth / 2)) * -fruitAlignmentPID[0])
+        timeout -= 1
+    return timeout == 0            
+def Harvest():
+    pass
+def Retreat():
+    drivebase.moveLen(-6, 40)
+    pass
+binCoords = [0, 0, 0] #3rd is heading
+def Score():
+    Navigate(binCoords[0], binCoords[1], binCoords[2])
+    pass
+def GyroCorrection():
+    pass
+def GroundDetect():
+    pass
+def GroundHarvest():
+    pass
+stateFuncs = [Ramp, TreeDetection, FruitDetection, Harvest, Retreat, Score, GyroCorrection, GroundDetect, GroundHarvest]
+currentState = 0
+def Run():
+    stateFuncs[currentState]()
+def LargestVisionObject(visionObjects, byArea = False):
+    best = visionObjects[0]
+    visionObjects = visionObjects[1:]
+    if byArea:
+        for visionObject in visionObjects:
+            if visionObject.height * visionObject.width > best.height * best.width:
+                best = visionObject
+    else:
+        for visionObject in visionObjects:
+            if visionObject.height > best.height:
+                best = visionObject
+    return best
+def LargestVisionObjectIndex(visionObjects, byArea = False):
+    indexBest = 0
+    i = 1
+    if byArea:
+        while i < visionObjects.count:
+            if visionObjects[i].height * visionObjects[i].width > visionObjects[indexBest].height * visionObjects[indexBest].width:
+                indexBest = i
+            i += 1
+    else:
+        while i < visionObjects.count:
+            if visionObjects[i].height > visionObjects[indexBest].height:
+                indexBest = i
+            i += 1
+    return indexBest
+def Navigate(x, y, heading):
+    print("Navigating")
+    currentLine = ClosestLine(fieldX, fieldY)
+    targetLine = ClosestLine(x, y)
+    targetLinePoint = ClosestPointOnLineSegment(targetLine, x, y)
+    entrance = ClosestPointOnLineSegment(currentLine, fieldX, fieldY)
+    print(currentLine)
+    print(targetLine)
+    print(LineNav[currentLine][targetLine])
+    print(entrance)
+    DriveToPoint(entrance[0], entrance[1])
+    i = 0
+    while i < len(LineNav[currentLine][targetLine]) - 1:
+        entrance = LineConnections[LineNav[currentLine][targetLine][i]][LineNav[currentLine][targetLine][i + 1]]
+        print(entrance)
+        DriveToPoint(entrance[0], entrance[1])
+        i += 1
+    print(targetLinePoint)
+    DriveToPoint(targetLinePoint[0], targetLinePoint[1])
+    DriveToPoint(x, y)
+    drivebase.turn(heading)
+def headingError(setpoint, current):
+        err = setpoint - current
+        while err < -180:
+            err += 360
+        while err > 180:
+            err -= 360
+        return err
+def DriveToPoint(x, y):
+    print("Driving")
+    if not ((x - fieldX)**2 + (y - fieldY)**2 > fieldSetpointTolerance**2):
+        return
+    drivebase.turn(HeadingToPoint(fieldX, fieldY, x, y))
+    while (x - fieldX)**2 + (y - fieldY)**2 > fieldSetpointTolerance**2:
+        print(headingError(HeadingToPoint(fieldX, fieldY, x, y), 360 - inertial.orientation(YAW)))
+        drivebase.drive(fieldDriveSpeed, headingError(HeadingToPoint(fieldX, fieldY, x, y), 360 - inertial.orientation(YAW)) * fieldDriveHeadingPID[0])
+    print("Done Driving")
+    drivebase.drive(0, 0)
+def DistToLineSegment(line, xp, yp):
+    if (Lines[line][2] - Lines[line][0]) * (Lines[line][2] - xp) + (Lines[line][1] - Lines[line][3]) * (Lines[line][1] - yp) < 0:
+        return math.sqrt((Lines[line][2] - xp) ** 2 + (Lines[line][1] - yp) ** 2)
+    elif (Lines[line][0] - Lines[line][2]) * (Lines[line][0] - xp) + (Lines[line][3] - Lines[line][1]) * (Lines[line][3] - yp) < 0:
+        return math.sqrt((Lines[line][0] - xp) ** 2 + (Lines[line][3] - yp) ** 2)
+    else:
+        return (abs((Lines[line][3] - Lines[line][1]) * xp - (Lines[line][2] - Lines[line][0]) * 
+                yp + Lines[line][2] * Lines[line][1] - Lines[line][3] * Lines[line][0]) / 
+                math.sqrt((Lines[line][3] - Lines[line][1]) ** 2 + (Lines[line][2] - Lines[line][0]) ** 2))
+def ClosestPointOnLineSegment(line, xp, yp):
+    if (Lines[line][1] - Lines[line][3]) == 0:
+        return [max(min(Lines[line][0], Lines[line][2]), min(max(Lines[line][0], Lines[line][2]), xp)), Lines[line][1]]
+    elif (Lines[line][0] - Lines[line][2]) == 0:
+        return [Lines[line][0], max(min(Lines[line][1], Lines[line][3]), min(max(Lines[line][1], Lines[line][3]), yp))]
+    return [0, 0]
+def ClosestLine(xp, yp):
+    lowestIndex = 0
+    lowestDist = DistToLineSegment(0, xp, yp)
+    i = 1
+    while i < 8:
+        checkDist = DistToLineSegment(i, xp, yp)
+        if checkDist < lowestDist:
+            lowestIndex = i
+            lowestDist = checkDist
+        i += 1
+    return lowestIndex
+def HeadingToPoint(x1, y1, x2, y2):
+    return math.atan2(y2 - y1, x2 - x1) * 360 / (2 * math.pi)
+def DistanceBetweenPoints(x1, y1, x2, y2):
+    return math.sqrt((y1 - y2) * (y1 - y2) + (x1 - x2) * (x1 - x2))
+FruitDetection()

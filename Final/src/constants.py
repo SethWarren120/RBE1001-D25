@@ -56,6 +56,33 @@ tagLocations = [[13, -0.75, 90],
                 [-0.75, 50, 0],
                 [-0.75, 13, 0]]
 
+#x y (inches)
+post1Location = [50,50]
+post2Location = [50,50]
+post3Location = [50,50]
+post4Location = [50,50]
+post5Location = [50,50]
+post6Location = [50,50]
+post7Location = [50,50]
+post8Location = [50,50]
+post9Location = [50,50]
+posts = [post1Location, post2Location, post3Location,
+         post4Location, post5Location, post6Location,
+         post7Location, post8Location, post9Location]
+
+#roller constants
+rollerDiameter = 2.5 #inches
+rollerGearRatio = 5
+forksGearRatio = 5
+
+#arm constants
+lowFruitHeight = 5 #inches
+lowFruitAngle = 45 #degrees
+highFruitHeight = 10 #inches
+highFruitAngle = 90 #degrees
+lowFruitWristAngle = 5 #degrees
+highFruitWristAngle = 10 #degrees
+
 minArmLength = 0
 maxArmLength = 270
 
