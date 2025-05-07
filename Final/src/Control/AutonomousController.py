@@ -185,45 +185,26 @@
 #     cx = 0
 #     cy = 0
 #     ch = 0
-#     currentLine = ClosestLine(cx, cy)
-#     targetLine = ClosestLine(x, y)
-#     targetLinePoint = ClosestPointOnLineSegment(targetLine, x, y)
+# #     currentLine = ClosestLine(cx, cy)
+# #     targetLine = ClosestLine(x, y)
+# #     targetLinePoint = ClosestPointOnLineSegment(targetLine, x, y)
 
-<<<<<<< HEAD
-    # drivebase.turn(HeadingToPoint(cx, cy, x, y))
-    drivebase.moveLen(DistToLineSegment(currentLine, cx, cy), DistToLineSegment(currentLine, cx, cy) * 40)
-=======
-#     drivebase.turn(HeadingToPoint(cx, cy, x, y))
+#     # drivebase.turn(HeadingToPoint(cx, cy, x, y))
 #     drivebase.moveLen(DistToLineSegment(currentLine, cx, cy), DistToLineSegment(currentLine, cx, cy) * 40)
->>>>>>> dfd9ea80d979912073bd8998b822404cdb13519c
 
-#     i = 1
+# #     i = 1
 
-<<<<<<< HEAD
-    while i < len(LineNav[currentLine][targetLine]) - 1:
-        entrance = LineConnections[LineNav[currentLine][targetLine][i]][LineNav[currentLine][targetLine][i + 1]]
-        # drivebase.turn(HeadingToPoint(cx, cy, entrance[0], entrance[1]))
-        drivebase.moveLen(DistanceBetweenPoints(entrance[0], entrance[1], cx, cy), DistanceBetweenPoints(entrance[0], entrance[1], cx, cy) * 40)
-
-    # drivebase.turn(HeadingToPoint(cx, cy, targetLinePoint[0], targetLinePoint[1]))
-    drivebase.moveLen(DistToLineSegment(currentLine, cx, cy), DistToLineSegment(currentLine, cx, cy) * 40)
-
-    # drivebase.turn(HeadingToPoint(cx, cy, x, y))
-    drivebase.moveLen(DistanceBetweenPoints(cx, cy, x, y), DistanceBetweenPoints(cx, cy, x, y) * 40) 
-    # drivebase.turn(heading)
-=======
 #     while i < len(LineNav[currentLine][targetLine]) - 1:
 #         entrance = LineConnections[LineNav[currentLine][targetLine][i]][LineNav[currentLine][targetLine][i + 1]]
-#         drivebase.turn(HeadingToPoint(cx, cy, entrance[0], entrance[1]))
+#         # drivebase.turn(HeadingToPoint(cx, cy, entrance[0], entrance[1]))
 #         drivebase.moveLen(DistanceBetweenPoints(entrance[0], entrance[1], cx, cy), DistanceBetweenPoints(entrance[0], entrance[1], cx, cy) * 40)
 
-#     drivebase.turn(HeadingToPoint(cx, cy, targetLinePoint[0], targetLinePoint[1]))
+#     # drivebase.turn(HeadingToPoint(cx, cy, targetLinePoint[0], targetLinePoint[1]))
 #     drivebase.moveLen(DistToLineSegment(currentLine, cx, cy), DistToLineSegment(currentLine, cx, cy) * 40)
 
-#     drivebase.turn(HeadingToPoint(cx, cy, x, y))
+#     # drivebase.turn(HeadingToPoint(cx, cy, x, y))
 #     drivebase.moveLen(DistanceBetweenPoints(cx, cy, x, y), DistanceBetweenPoints(cx, cy, x, y) * 40) 
-#     drivebase.turn(heading)
->>>>>>> dfd9ea80d979912073bd8998b822404cdb13519c
+#     # drivebase.turn(heading)
 
 
 # def DistToLineSegment(line, xp, yp):
