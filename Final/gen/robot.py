@@ -262,12 +262,13 @@ class TankDrivebase ():
     gearing = 5 / 1
     wheelBase = 11
     circumference = math.pi * diameter
-    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, camera: AiVision, ultraSonic: Sonar, 
+    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, camera: AiVision, ultraSonic: Sonar, controller: Controller,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
         self.ultraSonic = ultraSonic
         self.camera = camera
+        self.controller = controller
         self.diameter = wheelDiameter
         self.gearing = gear_ratio
         self.wheelBase = track_width
@@ -284,7 +285,7 @@ class TankDrivebase ():
         else:
             motorCorrectionConfig.units = _rotationUnits
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
-        odometryThread = Thread(self.updateOdometry)
+        driveThread = Thread(self.controllerDrive)
     def drive(self, speed, direction):
         left_speed = speed - direction
         right_speed = speed + direction
@@ -420,6 +421,7 @@ class Arm ():
                 self.armmotorR.spin(FORWARD, output, PERCENT)
             prevError = error
             self.armLength = self.armmotorL.position(DEGREES) / armGearRatio
+            wait(20)
     def getAngle(self):
         leftAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
         rightAngle = self.pivotmotorR.position(DEGREES) / pivotGearRatio
@@ -447,6 +449,7 @@ class Arm ():
                 self.pivotmotorR.spin(FORWARD, clampedOutput, PERCENT)
             prevError = error
             self.armAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
+            wait(20)
     def getWristAngle(self):
         self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
         return self.wristAngle
@@ -468,6 +471,7 @@ class Arm ():
             self.wristmotor.spin(FORWARD, output, PERCENT)
             prevError = error
             self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
+            wait(20)
     def flipWrist(self):
         self.setSetpoint(self.dLength, self.dAngle, self.dWrist+180)
     def clamp(self, value, min_value, max_value):
@@ -477,21 +481,13 @@ class Arm ():
         self.dLength = length
         self.dWrist = wristAngle
     def stowArm(self):
-        currentWristAngle = self.getWristAngle()
-        print(currentWristAngle)
-        if abs(currentWristAngle - 0) < abs(currentWristAngle - 180):
-            if abs(currentWristAngle - 0) < abs(currentWristAngle - 180) and abs(currentWristAngle - 0) < abs(currentWristAngle + 180):
-                self.setSetpoint(self.getLength(), self.getAngle(), 0)
-            elif abs(currentWristAngle - 180) < abs(currentWristAngle + 180):
-                self.setSetpoint(self.getLength(), self.getAngle(), 180)
-            else:
-                self.setSetpoint(self.getLength(), self.getAngle(), -180)
+        self.dWrist = 0
         while(abs(self.getWristAngle()-self.dWrist) > wristTolerance):
             sleep(1)
-        self.setSetpoint(0, self.getAngle(), self.getWristAngle())
+        self.dLength = 0
         while(abs(self.getLength()-self.dLength) > armTolerance):
             sleep(1)
-        self.setSetpoint(0, 0, self.getWristAngle())
+        self.dAngle = 0
     def atSetpoint(self):
         if (abs(self.getLength()-self.dLength) < armTolerance and abs(self.getAngle()-self.dAngle) < pivotTolerance and abs(self.getWristAngle()-self.dWrist) < wristTolerance):
             return True
@@ -603,13 +599,17 @@ def findAndAimAtObject():
     )
 def angleArmToObject():
     startObjectTracking()
-def grabObject():
-    armSub.setSetpoint(0, 50, 0)
-    wait(1000)
-    armSub.setSetpoint(50, 50, 0)
-    wait(1000)
-    armSub.setSetpoint(50, 50, armSub.getAngle())
-    intakeSub.runIntakeForTime(FORWARD, 1000)
+def dumpObject():
+    currentWristAngle = armSub.getWristAngle()
+    if currentWristAngle < 180 and currentWristAngle > 0:
+        armSub.setSetpoint(140, 20, 90)
+    elif currentWristAngle > 180:
+        armSub.setSetpoint(140, 20, 270)
+    else:
+        armSub.setSetpoint(140, 20, -90)
+    sleep(3000)
+    intakeSub.runIntakeForTime(REVERSE, 2000)
+    sleep(3000)
     armSub.stowArm()
 cam = AiVision(Ports.PORT2, AiVision.ALL_TAGS)
 cam.take_snapshot(AiVision.ALL_TAGS, 8)
@@ -651,7 +651,7 @@ pivot_motorR = Motor(Ports.PORT9, 18_1, False)
 camera = AiVision(Ports.PORT2, vision_Green, vision_Yellow, vision_Orange, vision_Pink, vision_GreenBox, vision_YellowBox, vision_OrangeBox, AiVision.ALL_TAGS)
 camera.start_awb()
 controller = Controller()
-drivebase = TankDrivebase(motorLeft, motorRight, inertial, camera, sideUltrasonic)
+drivebase = TankDrivebase(motorLeft, motorRight, inertial, camera, sideUltrasonic, controller)
 intake = Intake(intake_motor)
 arm = Arm(arm_motorL, arm_motorR, pivot_motorL, pivot_motorR, wrist_motor)
 setSubsystems(drivebase, arm, intake)
@@ -660,7 +660,6 @@ def printDebugging():
         brain.screen.print_at(arm.getLength(), x=1, y=60)
         brain.screen.print_at(arm.getAngle(), x=1, y=80)
         brain.screen.print_at(arm.getWristAngle(), x=1, y=100)
-        brain.screen.print_at(arm.pivotmotorR.torque(), x=1, y=120)
         sleep(20)
 debugThread = Thread(printDebugging)
 def Ramp():

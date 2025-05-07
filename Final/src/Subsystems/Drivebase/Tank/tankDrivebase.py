@@ -11,13 +11,14 @@ class TankDrivebase ():
     wheelBase = 11
     circumference = math.pi * diameter
     
-    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, camera: AiVision, ultraSonic: Sonar, 
+    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, camera: AiVision, ultraSonic: Sonar, controller: Controller,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
 
         self.ultraSonic = ultraSonic
         self.camera = camera
+        self.controller = controller
 
         self.diameter = wheelDiameter
         self.gearing = gear_ratio
@@ -41,7 +42,7 @@ class TankDrivebase ():
 
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
         
-        odometryThread = Thread(self.updateOdometry)
+        driveThread = Thread(self.controllerDrive)
     
     def drive(self, speed, direction):
         left_speed = speed - direction
