@@ -89,7 +89,7 @@ controller.buttonRight.pressed(lambda: arm.setSetpoint(post1Height[0], post1Heig
 
 controller.buttonX.pressed(arm.stowArm)
 
-controller.buttonY.pressed(lambda: arm.setSetpoint(180, 0, 90))
+# controller.buttonY.pressed(lambda: arm.setSetpoint(180, 0, 90))
 
 def Ramp():
 
@@ -340,4 +340,9 @@ def HeadingToPoint(x1, y1, x2, y2):
 def DistanceBetweenPoints(x1, y1, x2, y2):
     return math.sqrt((y1 - y2) * (y1 - y2) + (x1 - x2) * (x1 - x2))
 
-FruitDetection()
+Ramp()
+
+fieldX = 5
+fieldY = 13
+
+driveThread = Thread(drivebase.controllerDrive)

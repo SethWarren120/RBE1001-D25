@@ -42,7 +42,19 @@ class TankDrivebase ():
 
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
         
-        driveThread = Thread(self.controllerDrive)
+
+    def controllerDrive(self):
+        while True:
+            speed = math.copysign(math.pow(self.controller.axis3.value()/3,2), self.controller.axis3.value())/9
+            rot = -math.copysign(math.pow(self.controller.axis1.value()/3,2),self.controller.axis1.value())/9
+
+            if (abs(speed) < 5):
+                speed = 0
+            if (abs(rot) < 5):
+                rot = 0
+
+            self.drive(speed, rot)
+            wait(20)
     
     def drive(self, speed, direction):
         left_speed = speed - direction
