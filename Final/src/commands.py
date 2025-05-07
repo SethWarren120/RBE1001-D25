@@ -71,12 +71,16 @@ def findAndAimAtObject():
 def angleArmToObject():
     startObjectTracking()
 
-def grabObject():
-    # angleArmToObject()
-    armSub.setSetpoint(0, 50, 0)
-    wait(1000)
-    armSub.setSetpoint(50, 50, 0)
-    wait(1000)
-    armSub.setSetpoint(50, 50, armSub.getAngle())
-    intakeSub.runIntakeForTime(FORWARD, 1000)
+def dumpObject():
+    currentWristAngle = armSub.getWristAngle()
+    if currentWristAngle < 180 and currentWristAngle > 0:
+        armSub.setSetpoint(140, 20, 90)
+    elif currentWristAngle > 180:
+        armSub.setSetpoint(140, 20, 270)
+    else:
+        armSub.setSetpoint(140, 20, -90)
+    
+    sleep(3000)
+    intakeSub.runIntakeForTime(REVERSE, 2000)
+    sleep(3000)
     armSub.stowArm()

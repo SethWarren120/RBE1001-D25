@@ -10,13 +10,14 @@ class TankDrivebase ():
     wheelBase = 11
     circumference = math.pi * diameter
     
-    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, camera: AiVision, ultraSonic: Sonar, 
+    def __init__(self, _motorLeft: Motor, _motorRight: Motor, gyro: Inertial, camera: AiVision, ultraSonic: Sonar, controller: Controller,
                  motorCorrectionConfig = None, _rotationUnits = DEGREES, _speedUnits = RPM):
         self.motorLeft = _motorLeft
         self.motorRight = _motorRight
 
         self.ultraSonic = ultraSonic
         self.camera = camera
+        self.controller = controller
 
         self.diameter = wheelDiameter
         self.gearing = gear_ratio
@@ -40,7 +41,7 @@ class TankDrivebase ():
 
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
         
-        odometryThread = Thread(self.updateOdometry)
+        driveThread = Thread(self.controllerDrive)
     
     def drive(self, speed, direction):
         left_speed = speed - direction
@@ -48,11 +49,19 @@ class TankDrivebase ():
 
         self.motorLeft.spin(FORWARD,left_speed)
         self.motorRight.spin(FORWARD,right_speed)
-        
-    def turn(self, heading):
-        # self.motorLeft.spin(FORWARD, -speed)
-        # self.motorRight.spin(FORWARD, speed)
-        pass
+
+    def controllerDrive(self):
+        while True:
+            speed = math.copysign(math.pow(self.controller.axis3.value()/3,2), self.controller.axis3.value())/9
+            rot = -math.copysign(math.pow(self.controller.axis1.value()/3,2),self.controller.axis1.value())/9
+
+            if (abs(speed) < 5):
+                speed = 0
+            if (abs(rot) < 5):
+                rot = 0
+
+            self.drive(speed, rot)
+            wait(20)
 
     def moveLen(self, len, speed):
         deg = 360 * ((len / self.circumference) * self.gearing)
@@ -109,59 +118,3 @@ class TankDrivebase ():
                 self.x += (self.x - (adjustedX - observedX))/2
                 self.y += (self.y - (adjustedY - observedY))/2
                 self.heading = (tagAngle - observedAngle) % 360
-
-    def onLine(self, sensor):
-        whiteLineValue = 680
-        return sensor.reflectivity() < whiteLineValue
-
-    def centerToObject(self):
-        while True:
-            object = None
-            #loops until it finds an object
-            while True:
-                objectsGreen = self.camera.take_snapshot(vision_Green)
-                objectsOrange = self.camera.take_snapshot(vision_Orange)
-                objectsYellow = self.camera.take_snapshot(vision_Yellow)
-
-                print(objectsOrange)
-
-                largestwidth = 0
-                for tobject in objectsGreen:
-                    if tobject.width > largestwidth:
-                        largestwidth = tobject.width
-                        object = tobject
-                        print("largest is green")
-                for tobject in objectsOrange:
-                    if tobject.width > largestwidth:
-                        largestwidth = tobject.width
-                        object = tobject
-                        print("largest is orange")
-                for tobject in objectsYellow:
-                    if tobject.width > largestwidth:
-                        largestwidth = tobject.width
-                        object = tobject
-                        print("largest is yellow")
-
-                if object != None:
-                    break
-            
-            x = object.centerX
-
-            #the camera outputs with 0,0 being the top right of the camera
-            #this code moves 0,0 to the center of the camera
-            correctedX = x + cameraXOffset
-            
-            print("turning")
-            #drives the wheels to get the object to the center of the camera
-            self.turn(correctedX)
-
-    def goUpRamp(self):
-        self.motorLeft.spin(FORWARD, -50)
-        self.motorRight.spin(FORWARD, -50)
-        while self.gyro.orientation(OrientationType.ROLL) < 0:
-            rightError = self.ultraSonic.distance(INCHES) - 3.2
-            self.drive(-100, -drivePID[0]*rightError)
-            wait(20)
-
-        self.motorLeft.stop()
-        self.motorRight.stop()

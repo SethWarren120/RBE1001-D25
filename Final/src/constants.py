@@ -96,10 +96,10 @@ pivotMaxSpeed = 15
 wristPID = [1,0,0]
 wristTolerance = 0.5
 
-post1Height = [180, 25, 20]
-post2Height = [180, 50, 50]
-post3Height = [140, 42, 42]
-post4Height = [270, 52, 57]
+post1Height = [160, 15, 10]
+post2Height = [140, 40, 45]
+post3Height = [180, 50, 42]
+post4Height = [150, 79, 75]
 
 fruitAlignmentPID = [0.1, 0, 0]
 fruitAlignmentTolerance = 10

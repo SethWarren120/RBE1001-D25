@@ -175,22 +175,22 @@ def Navigate(x, y, heading):
     targetLine = ClosestLine(x, y)
     targetLinePoint = ClosestPointOnLineSegment(targetLine, x, y)
 
-    drivebase.turn(HeadingToPoint(cx, cy, x, y))
+    # drivebase.turn(HeadingToPoint(cx, cy, x, y))
     drivebase.moveLen(DistToLineSegment(currentLine, cx, cy), DistToLineSegment(currentLine, cx, cy) * 40)
 
     i = 1
 
     while i < len(LineNav[currentLine][targetLine]) - 1:
         entrance = LineConnections[LineNav[currentLine][targetLine][i]][LineNav[currentLine][targetLine][i + 1]]
-        drivebase.turn(HeadingToPoint(cx, cy, entrance[0], entrance[1]))
+        # drivebase.turn(HeadingToPoint(cx, cy, entrance[0], entrance[1]))
         drivebase.moveLen(DistanceBetweenPoints(entrance[0], entrance[1], cx, cy), DistanceBetweenPoints(entrance[0], entrance[1], cx, cy) * 40)
 
-    drivebase.turn(HeadingToPoint(cx, cy, targetLinePoint[0], targetLinePoint[1]))
+    # drivebase.turn(HeadingToPoint(cx, cy, targetLinePoint[0], targetLinePoint[1]))
     drivebase.moveLen(DistToLineSegment(currentLine, cx, cy), DistToLineSegment(currentLine, cx, cy) * 40)
 
-    drivebase.turn(HeadingToPoint(cx, cy, x, y))
+    # drivebase.turn(HeadingToPoint(cx, cy, x, y))
     drivebase.moveLen(DistanceBetweenPoints(cx, cy, x, y), DistanceBetweenPoints(cx, cy, x, y) * 40) 
-    drivebase.turn(heading)
+    # drivebase.turn(heading)
 
 
 def DistToLineSegment(line, xp, yp):
