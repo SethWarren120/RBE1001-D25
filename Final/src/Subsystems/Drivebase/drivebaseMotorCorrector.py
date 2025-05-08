@@ -1,6 +1,14 @@
 # Credit to Seth for the tank drive motor corrector
 from vex import *
 
+# This class was written in order to try and deal with the slop present within the Vex parts.
+# We did not use this for the final robot as all dead reckoning in auto would have been corrected
+# by the gyro and april tags
+
+# This class tracks the rotation within the given slop and corrects output values to account for that,
+# or moves the motors across the slop automatically while stopping the other motors to prevent
+# unexpected movement
+
 class DrivebaseMotorCorrector:
     print("hello :3")
     motors = []

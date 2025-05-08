@@ -7,7 +7,7 @@ cam = AiVision(Ports.PORT2, AiVision.ALL_TAGS)
 
 cam.take_snapshot(AiVision.ALL_TAGS, 8)
 
-
+# April tag async thread function
 def AprilTagLoop():
     while True:
         tags = cam.take_snapshot(AiVision.ALL_TAGS)
@@ -17,9 +17,12 @@ def AprilTagLoop():
             ProcessAprilTag(tag)
         sleep(20)
 
-# aprilTagThread = Thread(AprilTagLoop)
+# By plotting experimental values for size in pixels vs distance, we were able to get a function for each size april tag
+# That would tell us how far away it was for its size. We required different functions for each because the tree april tags were
+# much smaller
 
 def ProcessAprilTag(aprilTag):
+    # If its id is 0 - 11, then it is a tag on a tree branch
     if aprilTag.id < 12:
         distance = 290 / aprilTag.height
         angle = 27.5 - (27.5 * (aprilTag.centerY)/120)
@@ -29,10 +32,8 @@ def ProcessAprilTag(aprilTag):
         GiveTreeRotationEstimate(aprilTag.id, cr + aprilTag.rotation, aprilTag.height)
     else:
         distance = 730 / aprilTag.height
-        fieldAngle = math.pi * (360 - (aprilTag.angle - tagLocations[aprilTag.id - 12][2])) / 180
-        
+        fieldAngle = math.pi * (360 - (aprilTag.angle - tagLocations[aprilTag.id - 12][2])) / 180        
         fieldx = tagLocations[aprilTag.id - 12][0] + distance * math.cos(fieldAngle)
         fieldy = tagLocations[aprilTag.id - 12][1] + distance * math.sin(fieldAngle)
-        print([fieldx, fieldy])
         visionEstimate(fieldx, fieldy)
 

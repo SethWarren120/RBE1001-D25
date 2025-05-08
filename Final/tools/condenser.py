@@ -1,4 +1,9 @@
 # All credit to Seth for the code to condense the project into a single file
+
+# Takes the root project file, specified in condenser_settings.json, and then imports 
+# it and all of its dependencies into one file so that it can be deployed to the robot
+# It makes sure all filed are imported in the correct order for dependence reasons
+
 import json
 import os
 

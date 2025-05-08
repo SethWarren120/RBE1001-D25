@@ -117,60 +117,6 @@ class TankDrivebase ():
             odometryEstimate(dl, dr)
             sleep(20)
 
-
-
     def onLine(self, sensor):
         whiteLineValue = 680
         return sensor.reflectivity() < whiteLineValue
-
-    def centerToObject(self):
-        while True:
-            object = None
-            #loops until it finds an object
-            while True:
-                objectsGreen = self.camera.take_snapshot(vision_Green)
-                objectsOrange = self.camera.take_snapshot(vision_Orange)
-                objectsYellow = self.camera.take_snapshot(vision_Yellow)
-
-                print(objectsOrange)
-
-                largestwidth = 0
-                for tobject in objectsGreen:
-                    if tobject.width > largestwidth:
-                        largestwidth = tobject.width
-                        object = tobject
-                        print("largest is green")
-                for tobject in objectsOrange:
-                    if tobject.width > largestwidth:
-                        largestwidth = tobject.width
-                        object = tobject
-                        print("largest is orange")
-                for tobject in objectsYellow:
-                    if tobject.width > largestwidth:
-                        largestwidth = tobject.width
-                        object = tobject
-                        print("largest is yellow")
-
-                if object != None:
-                    break
-            
-            x = object.centerX
-
-            #the camera outputs with 0,0 being the top right of the camera
-            #this code moves 0,0 to the center of the camera
-            correctedX = x + cameraXOffset
-            
-            print("turning")
-            #drives the wheels to get the object to the center of the camera
-            self.turn(correctedX)
-
-    def goUpRamp(self):
-        self.motorLeft.spin(FORWARD, -50)
-        self.motorRight.spin(FORWARD, -50)
-        while self.gyro.orientation(OrientationType.ROLL) < 0:
-            rightError = self.ultraSonic.distance(INCHES) - 3.2
-            self.drive(-100, -drivePID[0]*rightError)
-            wait(20)
-
-        self.motorLeft.stop()
-        self.motorRight.stop()

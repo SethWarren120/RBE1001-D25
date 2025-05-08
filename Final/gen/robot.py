@@ -78,10 +78,10 @@ pivotTolerance = 0.2
 pivotMaxSpeed = 15
 wristPID = [1,0,0]
 wristTolerance = 0.5
-post1Height = [180, 25, 20]
-post2Height = [180, 50, 50]
-post3Height = [140, 42, 42]
-post4Height = [270, 52, 57]
+post1Height = [160, 15, 10]
+post2Height = [140, 40, 45]
+post3Height = [180, 50, 42]
+post4Height = [150, 79, 75]
 fruitAlignmentPID = [0.1, 0, 0]
 fruitAlignmentTolerance = 10
 Lines = [[13, 13, 86, 13], [86, 13, 86, 133], [86, 133, 13, 133], [13, 133, 13, 13], 
@@ -285,7 +285,16 @@ class TankDrivebase ():
         else:
             motorCorrectionConfig.units = _rotationUnits
         self.motorCorrector = DrivebaseMotorCorrector([_motorLeft, _motorRight], motorCorrectionConfig)
-        driveThread = Thread(self.controllerDrive)
+    def controllerDrive(self):
+        while True:
+            speed = math.copysign(math.pow(self.controller.axis3.value()/3,2), self.controller.axis3.value())/9
+            rot = -math.copysign(math.pow(self.controller.axis1.value()/3,2),self.controller.axis1.value())/9
+            if (abs(speed) < 5):
+                speed = 0
+            if (abs(rot) < 5):
+                rot = 0
+            self.drive(speed, rot)
+            wait(20)
     def drive(self, speed, direction):
         left_speed = speed - direction
         right_speed = speed + direction
@@ -390,9 +399,6 @@ class Arm ():
         self.dLength = 0
         self.dAngle = 0
         self.dWrist = 0
-        armLengthThread = Thread(lambda: self.setLength())
-        armAngleThread = Thread(lambda: self.setAngle())
-        wristAngleThread = Thread(lambda: self.setWristAngle())
     def getLength(self):
         leftLength = self.armmotorL.position(DEGREES) / armGearRatio
         rightLength = self.armmotorR.position(DEGREES) / armGearRatio
@@ -450,6 +456,32 @@ class Arm ():
             prevError = error
             self.armAngle = self.pivotmotorL.position(DEGREES) / pivotGearRatio
             wait(20)
+    def resetAngle(self):
+        print("qeegiuadfikuaswefhuWE;UHHAER")
+        while True:
+            output = -20
+            self.pivotmotorL.spin(FORWARD, output, PERCENT)
+            self.pivotmotorR.spin(FORWARD, output, PERCENT)
+            if (self.pivotmotorL.torque() > 1.5 or self.pivotmotorR.torque() > 1.5):
+                self.pivotmotorR.stop()
+                self.pivotmotorL.stop()
+                self.pivotmotorR.set_position(0, DEGREES)
+                self.pivotmotorL.set_position(0, DEGREES)
+                break
+            wait(20)
+        print("done 1")
+        while True:
+            targetLength = -1000
+            output = -3
+            self.armmotorL.spin(FORWARD, output, PERCENT)
+            self.armmotorR.spin(FORWARD, output, PERCENT)
+            if (self.armmotorL.torque() > 1.5 or self.armmotorL.torque() > 1.5):
+                self.armmotorR.stop()
+                self.armmotorL.stop()
+                self.armmotorR.set_position(0, DEGREES)
+                self.armmotorL.set_position(0, DEGREES)
+                break
+        print("done")
     def getWristAngle(self):
         self.wristAngle = self.wristmotor.position(DEGREES) / wristGearRatio
         return self.wristAngle
@@ -645,7 +677,7 @@ inertial = Inertial(Ports.PORT1)
 arm_motorL = Motor(Ports.PORT17, 18_1, False)
 arm_motorR = Motor(Ports.PORT7, 18_1, True)
 intake_motor = Motor(Ports.PORT5, 18_1, False)
-wrist_motor = Motor(Ports.PORT6, 18_1, False)
+wrist_motor = Motor(Ports.PORT3, 18_1, False)
 pivot_motorL = Motor(Ports.PORT4, 18_1, True)
 pivot_motorR = Motor(Ports.PORT9, 18_1, False)
 camera = AiVision(Ports.PORT2, vision_Green, vision_Yellow, vision_Orange, vision_Pink, vision_GreenBox, vision_YellowBox, vision_OrangeBox, AiVision.ALL_TAGS)
@@ -662,6 +694,26 @@ def printDebugging():
         brain.screen.print_at(arm.getWristAngle(), x=1, y=100)
         sleep(20)
 debugThread = Thread(printDebugging)
+def grabFruit():
+    intake.runIntake(FORWARD)
+    arm.setSetpoint(arm.dLength, arm.dAngle, arm.dWrist-5)
+armLengthThread = Thread(lambda: arm.setLength())
+armAngleThread = Thread(lambda: arm.setAngle())
+wristAngleThread = Thread(lambda: arm.setWristAngle())
+controller.buttonR2.pressed(grabFruit)
+controller.buttonR2.released(intake.stopIntake)
+controller.buttonL2.pressed(arm.flipWrist)
+controller.buttonB.pressed(dumpObject)
+controller.buttonUp.pressed(lambda: arm.setSetpoint(post4Height[0], post4Height[1], post4Height[2]))
+controller.buttonDown.pressed(lambda: arm.setSetpoint(post2Height[0], post2Height[1], post2Height[2]))
+controller.buttonLeft.pressed(lambda: arm.setSetpoint(post3Height[0], post3Height[1], post3Height[2]))
+controller.buttonRight.pressed(lambda: arm.setSetpoint(post1Height[0], post1Height[1], post1Height[2]))
+controller.buttonX.pressed(arm.stowArm)
+controller.buttonA.pressed(lambda: Ramp())
+controller.buttonY.pressed(lambda: green())
+def green():
+    fruitColor = 0
+    FruitDetection()
 def Ramp():
     while inertial.orientation(ROLL) > -23:
         drivebase.drive(100, 0)
@@ -840,4 +892,6 @@ def HeadingToPoint(x1, y1, x2, y2):
     return math.atan2(y2 - y1, x2 - x1) * 360 / (2 * math.pi)
 def DistanceBetweenPoints(x1, y1, x2, y2):
     return math.sqrt((y1 - y2) * (y1 - y2) + (x1 - x2) * (x1 - x2))
-FruitDetection()
+fieldX = 5
+fieldY = 13
+driveThread = Thread(drivebase.controllerDrive)

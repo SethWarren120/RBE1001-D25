@@ -4,6 +4,8 @@ from Subsystems.Drivebase.Tank.tankDrivebase import TankDrivebase
 from Subsystems.Arm.arm import Arm
 from Subsystems.Intake.intake import Intake
 
+# Many commands here were implemented elsewhere, so most of these ended up not being used
+
 def setSubsystems(driveBase: TankDrivebase, arm: Arm, intake: Intake):
     global driveSub, armSub, intakeSub, forksSub
 
@@ -71,6 +73,7 @@ def findAndAimAtObject():
 def angleArmToObject():
     startObjectTracking()
 
+# This one was used
 def dumpObject():
     currentWristAngle = armSub.getWristAngle()
     if currentWristAngle < 180 and currentWristAngle > 0:

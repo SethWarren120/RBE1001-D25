@@ -17,9 +17,7 @@ class Arm ():
         self.dAngle = 0
         self.dWrist = 0
         
-        armLengthThread = Thread(lambda: self.setLength())
-        armAngleThread = Thread(lambda: self.setAngle())
-        wristAngleThread = Thread(lambda: self.setWristAngle())
+        
 
     def getLength(self):
         leftLength = self.armmotorL.position(DEGREES) / armGearRatio

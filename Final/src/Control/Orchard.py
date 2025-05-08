@@ -23,10 +23,15 @@ fruitStatus = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 def GetTreePosition(treeNum):
     return { treeLocations[2*treeNum], treeLocations[2*treeNum + 1] }
 
+# Keeps track of what fruit have been harvested and gives the next one based on ease of harvesting,
+# which is determined based on how likely it is that is is overlapping with another tree
 def DetermineNextFruit(currentTree):
     
     pass
 
+# Because of the low resolution of the vex cameras, the height estimate had an error of +- 2 inches
+# Therefore, we average the results, giving more weight to the results where the camera was closer
+# to the tree
 def GiveTreeHeightEstimate(tree, height, certainty):
     treeHeightSums[tree] += height
     treeHeightCounts[tree] += certainty
@@ -39,6 +44,8 @@ def GiveTreeHeightEstimate(tree, height, certainty):
     
     treeHeights[tree] = bestHeight
 
+# Because we do not rotate the tree and our positioning relative to the tree does not need to be 100% exact,
+# we just take the single estimate we are most certain of for the rotation
 def GiveTreeRotationEstimate(tree, rotation, certainty):
     if certainty >= treeRotationCertainty[tree]:
         treeRotations[tree] = rotation
